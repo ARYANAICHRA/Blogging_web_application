@@ -1,6 +1,7 @@
-![Python application](https://github.com/ARYANAICHRA/Blogging_web_application/actions/workflows/python-app.yml/badge.svg)
-![Build](https://github.com/ARYANAICHRA/Blogging_web_application/actions/workflows/python-app.yml/badge.svg)
-
+![Build Status](https://github.com/ARYANAICHRA/Blogging_web_application/actions/workflows/python-app.yml/badge.svg)
+![Python](https://img.shields.io/badge/Python-3.10-blue)
+![Flask](https://img.shields.io/badge/Flask-WebApp-black)
+![Database](https://img.shields.io/badge/Database-SQLite-blue)
 
 # BlogSphere
 
