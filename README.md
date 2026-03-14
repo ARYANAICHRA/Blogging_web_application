@@ -1,4 +1,6 @@
 ![Python application](https://github.com/ARYANAICHRA/Blogging_web_application/actions/workflows/python-app.yml/badge.svg)
+![Build](https://github.com/ARYANAICHRA/Blogging_web_application/actions/workflows/python-app.yml/badge.svg)
+
 
 # BlogSphere
 
