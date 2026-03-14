@@ -1,0 +1,325 @@
+{% extends 'base.html' %}
+{% block title %}{{ post.title }} — BlogSphere{% endblock %}
+{% block content %}
+<div class="container-md page-pad">
+
+  <!-- POST HEADER -->
+  <header class="post-hero">
+    <div class="post-hero-meta">
+      <img src="{{ url_for('static', filename='uploads/avatars/' + post.author.avatar) }}" 
+           class="avatar avatar-sm" alt="{{ post.author.username }}"
+           onerror="this.src='https://ui-avatars.com/api/?name={{ post.author.username }}&background=c8502a&color=fff&size=128'">
+      <a href="{{ url_for('user.profile', username=post.author.username) }}">{{ post.author.username }}</a>
+      <span class="text-muted">·</span>
+      <span class="text-muted text-sm">{{ post.published_at.strftime('%B %d, %Y') if post.published_at else 'Draft' }}</span>
+      <span class="text-muted">·</span>
+      <span class="text-muted text-sm"><i class="fas fa-eye"></i> <span id="view-count">{{ post.views }}</span></span>
+      <span class="tag tag-{{ post.status }}">{{ post.status }}</span>
+    </div>
+    <h1 class="post-hero-title">{{ post.title }}</h1>
+
+    <!-- POST ACTIONS -->
+    <div class="post-actions">
+      {% if current_user.is_authenticated %}
+        <button class="action-btn {{ 'liked' if is_liked }}" id="like-btn" data-post-id="{{ post.id }}">
+          <i class="fas fa-heart"></i> <span class="like-count">{{ post.like_count }}</span>
+        </button>
+        <button class="action-btn {{ 'active' if is_bookmarked }}" id="bookmark-btn"
+                data-post-id="{{ post.id }}"
+                title="{{ 'Remove bookmark' if is_bookmarked else 'Bookmark' }}">
+          <i class="{{ 'fas' if is_bookmarked else 'far' }} fa-bookmark"></i>
+          <span id="bookmark-label">{{ 'Saved' if is_bookmarked else 'Save' }}</span>
+        </button>
+        {% if post.author != current_user %}
+          <button class="action-btn {{ 'btn-secondary' if is_following_author }}"
+                  id="follow-btn" data-user-id="{{ post.author.id }}">
+            <span id="follow-label">{{ 'Unfollow' if is_following_author else 'Follow' }}</span>
+          </button>
+        {% endif %}
+      {% else %}
+        <span class="action-btn"><i class="fas fa-heart"></i> {{ post.like_count }}</span>
+      {% endif %}
+
+      <button class="action-btn" onclick="shareBlog('{{ post.title|e }}', window.location.href)">
+        <i class="fas fa-share-alt"></i> Share
+      </button>
+
+      {% if current_user.is_authenticated and (current_user.id == post.author_id or current_user.role == 'admin') %}
+        <a href="{{ url_for('blog.edit_post', post_id=post.id) }}" class="action-btn">
+          <i class="fas fa-edit"></i> Edit
+        </a>
+        <form method="POST" action="{{ url_for('blog.delete_post', post_id=post.id) }}"
+              style="display:inline" onsubmit="return confirm('Delete this post?')">
+          <button type="submit" class="action-btn text-danger">
+            <i class="fas fa-trash"></i> Delete
+          </button>
+        </form>
+        <!-- TOGGLE COMMENTS: pure AJAX, label flips, no page reload or JSON page -->
+        <button class="action-btn" id="toggle-comments-btn" data-post-id="{{ post.id }}">
+          <i id="toggle-comments-icon" class="fas fa-comment{{ '-slash' if not post.comments_disabled else '' }}"></i>
+          <span id="toggle-comments-label">{{ 'Enable Comments' if post.comments_disabled else 'Disable Comments' }}</span>
+        </button>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if post.cover_image %}
+    <div class="post-hero-cover">
+      <img src="{{ url_for('static', filename='uploads/posts/' + post.cover_image) }}" alt="{{ post.title }}">
+    </div>
+  {% endif %}
+
+  <div class="article-content">{{ rendered|safe }}</div>
+
+  <!-- AUTHOR BIO -->
+  <div class="separator"></div>
+  <div class="card mb-4">
+    <div class="card-body d-flex align-center gap-2">
+      <img src="{{ url_for('static', filename='uploads/avatars/' + post.author.avatar) }}" 
+           class="avatar avatar-lg" alt="{{ post.author.username }}"
+           onerror="this.src='https://ui-avatars.com/api/?name={{ post.author.username }}&background=c8502a&color=fff&size=128'">
+      <div>
+        <a href="{{ url_for('user.profile', username=post.author.username) }}" class="fw-bold">{{ post.author.username }}</a>
+        <p class="text-muted text-sm mt-1" style="margin:0">{{ post.author.bio or 'No bio yet.' }}</p>
+        <div class="d-flex gap-1 mt-1" style="align-items:center">
+          <span class="text-xs text-muted" id="author-follower-count">{{ post.author.followers.count() }} followers</span>
+          {% if current_user.is_authenticated and current_user != post.author %}
+            <button class="btn btn-sm {{ 'btn-secondary' if is_following_author else 'btn-primary' }}"
+                    id="follow-btn-bio" data-user-id="{{ post.author.id }}">
+              <span>{{ 'Unfollow' if is_following_author else 'Follow' }}</span>
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMMENTS -->
+  <section id="comments">
+    <h2 style="font-size:1.4rem;margin-bottom:1.5rem">
+      Comments (<span id="comment-count">{{ post.comment_count }}</span>)
+    </h2>
+
+    <!-- Comment form + list (hidden when comments disabled) -->
+    <div id="comments-section"{% if post.comments_disabled %} style="display:none"{% endif %}>
+      {% if current_user.is_authenticated %}
+        <form method="POST" action="{{ url_for('blog.add_comment', post_id=post.id) }}" class="mb-4">
+          <div class="d-flex gap-1 align-center mb-2">
+            <img src="{{ url_for('static', filename='uploads/avatars/' + current_user.avatar) }}"
+                 class="avatar avatar-sm" onerror="this.src='https://ui-avatars.com/api/?name={{ current_user.username }}&background=c8502a&color=fff&size=128'">
+            <strong class="text-sm">{{ current_user.username }}</strong>
+          </div>
+          <textarea name="content" class="form-control mb-2" placeholder="Add a comment…" rows="3"></textarea>
+          <button type="submit" class="btn btn-primary btn-sm">Post Comment</button>
+        </form>
+      {% else %}
+        <p class="text-muted mb-4"><a href="{{ url_for('auth.login') }}" class="text-accent">Sign in</a> to leave a comment.</p>
+      {% endif %}
+
+      <div class="comment-thread">
+        {% for comment in comments %}
+          <div class="comment-item" id="comment-{{ comment.id }}">
+            <img src="{{ url_for('static', filename='uploads/avatars/' + comment.author.avatar) }}"
+                 class="avatar avatar-sm" onerror="this.src='https://ui-avatars.com/api/?name=User&background=c8502a&color=fff&size=128'">
+            <div class="comment-body">
+              <div>
+                <a href="{{ url_for('user.profile', username=comment.author.username) }}" class="comment-author">{{ comment.author.username }}</a>
+                <span class="comment-time">{{ comment.created_at.strftime('%b %d, %Y') }}</span>
+              </div>
+              <p class="comment-content" id="comment-text-{{ comment.id }}">{{ comment.content }}</p>
+
+              {% if current_user.is_authenticated and current_user.id == comment.author_id %}
+                <div id="edit-form-{{ comment.id }}" class="hidden mt-1">
+                  <form method="POST" action="{{ url_for('blog.edit_comment', comment_id=comment.id) }}">
+                    <textarea name="content" class="form-control mb-1" rows="2">{{ comment.content }}</textarea>
+                    <div class="d-flex gap-1">
+                      <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                      <button type="button" class="btn btn-sm btn-ghost" onclick="document.getElementById('edit-form-{{ comment.id }}').classList.add('hidden')">Cancel</button>
+                    </div>
+                  </form>
+                </div>
+              {% endif %}
+
+              <div class="d-flex gap-1 mt-1">
+                {% if current_user.is_authenticated %}
+                  <button class="btn btn-ghost btn-sm text-xs" data-reply-to="{{ comment.id }}">
+                    <i class="fas fa-reply"></i> Reply
+                  </button>
+                  {% if current_user.id == comment.author_id %}
+                    <button class="btn btn-ghost btn-sm text-xs" data-edit-comment="{{ comment.id }}">
+                      <i class="fas fa-edit"></i> Edit
+                    </button>
+                  {% endif %}
+                  {% if current_user.id == comment.author_id or current_user.role == 'admin' %}
+                    <form method="POST" action="{{ url_for('blog.delete_comment', comment_id=comment.id) }}" style="display:inline">
+                      <button type="submit" class="btn btn-ghost btn-sm text-xs text-danger"
+                              onclick="return confirm('Delete this comment?')">
+                        <i class="fas fa-trash"></i> Delete
+                      </button>
+                    </form>
+                  {% endif %}
+                {% endif %}
+              </div>
+
+              {% if current_user.is_authenticated %}
+                <div id="reply-form-{{ comment.id }}" class="reply-form hidden mt-2">
+                  <form method="POST" action="{{ url_for('blog.add_comment', post_id=post.id) }}">
+                    <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                    <textarea name="content" class="form-control mb-1" placeholder="Write a reply…" rows="2"></textarea>
+                    <div class="d-flex gap-1">
+                      <button type="submit" class="btn btn-sm btn-primary">Reply</button>
+                      <button type="button" class="btn btn-sm btn-ghost"
+                              onclick="document.getElementById('reply-form-{{ comment.id }}').classList.add('hidden')">Cancel</button>
+                    </div>
+                  </form>
+                </div>
+              {% endif %}
+
+              {% if comment.replies.count() > 0 %}
+                <div class="reply-thread mt-2">
+                  {% for reply in comment.replies.filter_by(is_deleted=False).all() %}
+                    <div class="comment-item" id="comment-{{ reply.id }}" style="padding:0.75rem 0">
+                      <img src="{{ url_for('static', filename='uploads/avatars/' + reply.author.avatar) }}"
+                           class="avatar avatar-sm" onerror="this.src='https://ui-avatars.com/api/?name=User&background=c8502a&color=fff&size=128'">
+                      <div class="comment-body">
+                        <a href="{{ url_for('user.profile', username=reply.author.username) }}" class="comment-author">{{ reply.author.username }}</a>
+                        <span class="comment-time">{{ reply.created_at.strftime('%b %d') }}</span>
+                        <p class="comment-content mt-1">{{ reply.content }}</p>
+                        {% if current_user.is_authenticated and (current_user.id == reply.author_id or current_user.role == 'admin') %}
+                          <form method="POST" action="{{ url_for('blog.delete_comment', comment_id=reply.id) }}" style="display:inline">
+                            <button type="submit" class="btn btn-ghost btn-sm text-xs text-danger"
+                                    onclick="return confirm('Delete?')">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                          </form>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <div class="empty-state" style="padding:2rem">
+            <i class="fas fa-comment"></i>
+            <p>No comments yet. Be the first to comment!</p>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Disabled notice -->
+    <div id="comments-disabled-notice"{% if not post.comments_disabled %} style="display:none"{% endif %}>
+      <div class="empty-state" style="padding:2rem">
+        <i class="fas fa-comment-slash"></i>
+        <p>Comments are disabled on this post.</p>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const POST_ID = {{ post.id }};
+
+// ── Toggle Comments — AJAX only, no page reload ───────────────────────────
+document.getElementById('toggle-comments-btn')?.addEventListener('click', function () {
+  fetch(`/post/${POST_ID}/toggle-comments`, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(r => r.json())
+  .then(data => {
+    const label   = document.getElementById('toggle-comments-label');
+    const icon    = document.getElementById('toggle-comments-icon');
+    const section = document.getElementById('comments-section');
+    const notice  = document.getElementById('comments-disabled-notice');
+    if (data.disabled) {
+      label.textContent = 'Enable Comments';
+      icon.className    = 'fas fa-comment';
+      section.style.display = 'none';
+      notice.style.display  = 'block';
+      showToast('Comments disabled.', 'info');
+    } else {
+      label.textContent = 'Disable Comments';
+      icon.className    = 'fas fa-comment-slash';
+      section.style.display = 'block';
+      notice.style.display  = 'none';
+      showToast('Comments enabled.', 'success');
+    }
+  })
+  .catch(() => showToast('Action failed. Please try again.', 'danger'));
+});
+
+// ── Like — instant update ─────────────────────────────────────────────────
+document.getElementById('like-btn')?.addEventListener('click', function () {
+  fetch(`/post/${POST_ID}/like`, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(r => r.json())
+  .then(data => {
+    const btn = document.getElementById('like-btn');
+    btn.querySelector('.like-count').textContent = data.count;
+    btn.classList.toggle('liked', data.liked);
+    btn.classList.toggle('active', data.liked);
+  });
+});
+
+// ── Bookmark — instant update ─────────────────────────────────────────────
+document.getElementById('bookmark-btn')?.addEventListener('click', function () {
+  fetch(`/post/${POST_ID}/bookmark`, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(r => r.json())
+  .then(data => {
+    const btn   = document.getElementById('bookmark-btn');
+    const label = document.getElementById('bookmark-label');
+    const icon  = btn.querySelector('i');
+    btn.classList.toggle('active', data.bookmarked);
+    icon.className    = data.bookmarked ? 'fas fa-bookmark' : 'far fa-bookmark';
+    label.textContent = data.bookmarked ? 'Saved' : 'Save';
+    btn.title = data.bookmarked ? 'Remove bookmark' : 'Bookmark';
+    showToast(data.bookmarked ? 'Bookmarked!' : 'Bookmark removed.', 'success');
+  });
+});
+
+// ── Follow — instant update, syncs both follow buttons ────────────────────
+function handleFollow(btn) {
+  const userId = btn.dataset.userId;
+  fetch(`/user/follow/${userId}`, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(r => r.json())
+  .then(data => {
+    ['follow-btn', 'follow-btn-bio'].forEach(id => {
+      const b = document.getElementById(id);
+      if (!b) return;
+      b.classList.toggle('btn-secondary', data.following);
+      b.classList.toggle('btn-primary', !data.following);
+      const sp = b.querySelector('span');
+      if (sp) sp.textContent = data.following ? 'Unfollow' : 'Follow';
+    });
+    const fc = document.getElementById('author-follower-count');
+    if (fc) fc.textContent = `${data.count} followers`;
+    showToast(data.following ? 'Now following!' : 'Unfollowed.', 'info');
+  });
+}
+document.getElementById('follow-btn')?.addEventListener('click', function () { handleFollow(this); });
+document.getElementById('follow-btn-bio')?.addEventListener('click', function () { handleFollow(this); });
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.className = `flash flash-${type}`;
+  t.innerHTML = `<span>${msg}</span><button onclick="this.parentElement.remove()">×</button>`;
+  t.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;min-width:220px;animation:slideIn .3s ease';
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 3500);
+}
+</script>
+{% endblock %}

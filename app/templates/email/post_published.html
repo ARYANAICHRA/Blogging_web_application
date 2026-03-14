@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f5f4f0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f0;padding:40px 20px">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+        <tr><td style="background:#c8502a;padding:28px 40px;text-align:center">
+          <h1 style="margin:0;color:white;font-size:1.6rem;font-family:Georgia,serif">✦ BlogSphere</h1>
+        </td></tr>
+        <tr><td style="padding:40px">
+          <p style="color:#6b6560;font-size:0.95rem;margin:0 0 8px">Hi <strong>{{ user.username }}</strong>,</p>
+          <h2 style="margin:0 0 16px;font-size:1.3rem;color:#1a1814">Your post is now live! 🚀</h2>
+          <div style="background:#f5f4f0;border-radius:10px;padding:20px 24px;margin:0 0 24px">
+            <h3 style="margin:0 0 8px;font-size:1.1rem;color:#1a1814;font-family:Georgia,serif">{{ post.title }}</h3>
+            <p style="margin:0;color:#6b6560;font-size:0.875rem">{{ post.excerpt[:150] }}{% if post.excerpt and post.excerpt|length > 150 %}…{% endif %}</p>
+          </div>
+          <div style="text-align:center">
+            <a href="http://localhost:5000/post/{{ post.slug }}" style="display:inline-block;background:#c8502a;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600">View Post →</a>
+          </div>
+        </td></tr>
+        <tr><td style="background:#f5f4f0;padding:20px 40px;text-align:center">
+          <p style="margin:0;color:#9b958d;font-size:0.78rem">© 2025 BlogSphere</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

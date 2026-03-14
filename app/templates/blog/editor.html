@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit Post' if post else 'New Post' }} — BlogSphere{% endblock %}
+{% block content %}
+<div class="container-md page-pad">
+  <div class="d-flex justify-between align-center mb-4">
+    <h1 style="font-size:1.8rem">{{ 'Edit Post' if post else 'New Post' }}</h1>
+    {% if post %}
+      <span class="tag tag-{{ post.status }}">{{ post.status }}</span>
+    {% endif %}
+  </div>
+
+  <form method="POST" enctype="multipart/form-data" id="post-form">
+    <!-- TITLE -->
+    <div class="form-group">
+      <label class="form-label">Title *</label>
+      <input type="text" name="title" class="form-control" style="font-size:1.2rem;font-family:var(--font-serif)"
+             placeholder="Your post title…" value="{{ post.title if post else '' }}" required>
+    </div>
+
+    <!-- COVER IMAGE -->
+    <div class="form-group">
+      <label class="form-label">Cover Image</label>
+      {% if post and post.cover_image %}
+        <div class="mb-2">
+          <img src="{{ url_for('static', filename='uploads/posts/' + post.cover_image) }}" style="max-height:150px;border-radius:var(--radius)">
+        </div>
+      {% endif %}
+      <input type="file" name="cover_image" accept="image/*" class="form-control">
+      <p class="form-hint">Recommended: 1200×630px</p>
+    </div>
+
+    <!-- MARKDOWN EDITOR -->
+    <div class="form-group">
+      <label class="form-label">Content * <span class="text-muted text-xs">(Markdown supported)</span></label>
+      <div class="editor-toolbar">
+        <button type="button" onclick="wrapText('**','**')" title="Bold"><i class="fas fa-bold"></i></button>
+        <button type="button" onclick="wrapText('*','*')" title="Italic"><i class="fas fa-italic"></i></button>
+        <button type="button" onclick="wrapText('~~','~~')" title="Strikethrough"><i class="fas fa-strikethrough"></i></button>
+        <button type="button" onclick="insertAtCursor(document.getElementById('content-editor'),'\n# ')" title="H1">H1</button>
+        <button type="button" onclick="insertAtCursor(document.getElementById('content-editor'),'\n## ')" title="H2">H2</button>
+        <button type="button" onclick="insertAtCursor(document.getElementById('content-editor'),'\n### ')" title="H3">H3</button>
+        <button type="button" onclick="wrapText('`','`')" title="Code"><i class="fas fa-code"></i></button>
+        <button type="button" onclick="wrapText('\n```\n','\n```\n')" title="Code block"><i class="fas fa-file-code"></i></button>
+        <button type="button" onclick="wrapText('[','](url)')" title="Link"><i class="fas fa-link"></i></button>
+        <button type="button" onclick="insertImage()" title="Image"><i class="fas fa-image"></i></button>
+        <button type="button" onclick="insertAtCursor(document.getElementById('content-editor'),'\n> ')" title="Quote"><i class="fas fa-quote-right"></i></button>
+        <button type="button" onclick="insertAtCursor(document.getElementById('content-editor'),'\n- ')" title="List"><i class="fas fa-list-ul"></i></button>
+        <button type="button" onclick="insertAtCursor(document.getElementById('content-editor'),'\n1. ')" title="Ordered list"><i class="fas fa-list-ol"></i></button>
+        <button type="button" onclick="insertAtCursor(document.getElementById('content-editor'),'\n---\n')" title="Divider"><i class="fas fa-minus"></i></button>
+        <button type="button" onclick="previewPost()" style="margin-left:auto;color:var(--accent)" title="Preview">
+          <i class="fas fa-eye"></i> Preview
+        </button>
+      </div>
+      <textarea id="content-editor" name="content" class="editor-area" placeholder="Write your post in Markdown…">{{ post.content if post else '' }}</textarea>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="d-flex gap-1 flex-wrap">
+      <button type="submit" name="action" value="draft" class="btn btn-secondary">
+        <i class="fas fa-save"></i> Save Draft
+      </button>
+      <button type="submit" name="action" value="publish" class="btn btn-primary">
+        <i class="fas fa-paper-plane"></i> {{ 'Update & Publish' if post and post.status == 'published' else 'Publish' }}
+      </button>
+      {% if post %}
+        <button type="submit" name="action" value="archive" class="btn btn-outline">
+          <i class="fas fa-archive"></i> Archive
+        </button>
+        <a href="{{ url_for('blog.view_post', slug=post.slug) }}" class="btn btn-ghost">Cancel</a>
+      {% else %}
+        <a href="{{ url_for('user.dashboard') }}" class="btn btn-ghost">Cancel</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- PREVIEW MODAL -->
+<div id="preview-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;overflow:auto;padding:2rem">
+  <div style="max-width:800px;margin:0 auto;background:var(--surface);border-radius:var(--radius-lg);padding:2.5rem">
+    <div class="d-flex justify-between align-center mb-3">
+      <h2 id="preview-title" style="font-family:var(--font-serif)"></h2>
+      <button onclick="document.getElementById('preview-modal').style.display='none'" class="btn btn-ghost"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="preview-content" class="article-content"></div>
+  </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script>
+function previewPost() {
+  const title = document.querySelector('[name="title"]').value || 'Untitled';
+  const content = document.getElementById('content-editor').value;
+  document.getElementById('preview-title').textContent = title;
+  document.getElementById('preview-content').innerHTML = marked.parse(content);
+  document.getElementById('preview-modal').style.display = 'block';
+}
+</script>
+{% endblock %}

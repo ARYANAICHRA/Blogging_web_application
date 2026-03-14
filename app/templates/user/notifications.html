@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+{% block title %}Notifications — BlogSphere{% endblock %}
+
+{% block extra_css %}
+<style>
+.notif-popup-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.notif-popup-overlay.open { display: flex; }
+.notif-popup {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-width: 620px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  animation: popIn .2s ease;
+}
+@keyframes popIn {
+  from { transform: scale(0.92); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+.notif-popup-close {
+  position: sticky;
+  top: 0.75rem;
+  float: right;
+  margin: 0.75rem 0.75rem 0 0;
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); font-size: 1rem; cursor: pointer;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: background var(--transition);
+  z-index: 10;
+}
+.notif-popup-close:hover { background: var(--surface-alt); }
+
+.notif-item {
+  cursor: pointer;
+  padding: 0.9rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+  margin-bottom: 2px;
+}
+.notif-item:last-child { border-bottom: none; }
+.notif-item:hover { background: var(--surface-alt); }
+.notif-item.unread {
+  background: var(--accent-light);
+  border-left: 3px solid var(--accent);
+  padding-left: calc(0.75rem - 3px);
+}
+.notif-item.unread p { font-weight: 600; }
+.unread-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0;
+  margin-left: auto; align-self: center;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-md page-pad">
+  <div class="d-flex justify-between align-center mb-4">
+    <div>
+      <h1>Notifications</h1>
+      {% set unread_count = notifications.items | selectattr('is_read', 'equalto', false) | list | length %}
+      {% if unread_count > 0 %}
+        <p class="text-muted text-sm mt-1">{{ unread_count }} unread on this page</p>
+      {% endif %}
+    </div>
+    {% if notifications.items %}
+      <button class="btn btn-secondary btn-sm" id="mark-all-read-btn">
+        <i class="fas fa-check-double"></i> Mark all read
+      </button>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-body" style="padding:0.75rem">
+      {% if notifications.items %}
+        {% for n in notifications.items %}
+          <div class="notif-item {{ '' if n.is_read else 'unread' }}"
+               id="notif-{{ n.id }}"
+               data-notif-id="{{ n.id }}"
+               data-is-read="{{ 'true' if n.is_read else 'false' }}"
+               data-message="{{ n.message }}"
+               data-type="{{ n.type }}"
+               data-time="{{ n.created_at.strftime('%B %d, %Y at %I:%M %p') }}"
+               data-link="{{ n.link or '' }}"
+               onclick="openNotifPopup(this)">
+            <div style="display:flex;align-items:flex-start;gap:0.75rem">
+              <div class="notif-icon {{ n.type }}">
+                {% if n.type == 'like' %}<i class="fas fa-heart"></i>
+                {% elif n.type == 'comment' %}<i class="fas fa-comment"></i>
+                {% elif n.type == 'reply' %}<i class="fas fa-reply"></i>
+                {% elif n.type == 'follow' %}<i class="fas fa-user-plus"></i>
+                {% elif n.type == 'announcement' %}<i class="fas fa-bullhorn"></i>
+                {% else %}<i class="fas fa-bell"></i>{% endif %}
+              </div>
+              <div style="flex:1;min-width:0">
+                <p style="margin:0 0 0.2rem;font-size:0.875rem;
+                          white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                  {{ n.message.split('||')[0] | striptags | replace('**', '') | replace('###', '') | replace('##', '') | replace('# ', '') | replace('* ', '') | truncate(60, true, '…') }}
+                </p>
+                <small class="text-muted">{{ n.created_at.strftime('%B %d, %Y · %I:%M %p') }}</small>
+              </div>
+              {% if not n.is_read %}
+                <div class="unread-dot"></div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state" style="padding:3rem">
+          <i class="fas fa-bell"></i>
+          <h3>No notifications</h3>
+          <p>You're all caught up!</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- PAGINATION -->
+  {% if notifications.pages > 1 %}
+    <div class="pagination">
+      {% if notifications.has_prev %}
+        <a href="{{ url_for('user.notifications', page=notifications.prev_num) }}" class="page-link">
+          <i class="fas fa-chevron-left"></i>
+        </a>
+      {% endif %}
+
+      {% for p in notifications.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+          <a href="{{ url_for('user.notifications', page=p) }}"
+             class="page-link {{ 'active' if p == notifications.page }}">{{ p }}</a>
+        {% else %}
+          <span class="page-link">…</span>
+        {% endif %}
+      {% endfor %}
+
+      {% if notifications.has_next %}
+        <a href="{{ url_for('user.notifications', page=notifications.next_num) }}" class="page-link">
+          <i class="fas fa-chevron-right"></i>
+        </a>
+      {% endif %}
+    </div>
+    <p class="text-center text-muted text-sm mt-2">
+      Page {{ notifications.page }} of {{ notifications.pages }}
+      · {{ notifications.total }} total notifications
+    </p>
+  {% endif %}
+</div>
+
+<!-- NOTIFICATION DETAIL POPUP -->
+<div class="notif-popup-overlay" id="notifPopupOverlay" onclick="closePopupOnOverlay(event)">
+  <div class="notif-popup">
+    <button class="notif-popup-close" onclick="closeNotifPopup()">
+      <i class="fas fa-times"></i>
+    </button>
+    <div style="padding:1.5rem 2rem 2rem">
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem">
+        <div class="notif-icon" id="popup-icon-wrap">
+          <i id="popup-icon"></i>
+        </div>
+        <div>
+          <div id="popup-type-label"
+               style="font-size:0.75rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)">
+          </div>
+          <div id="popup-time" style="font-size:0.8rem;color:var(--text-muted)"></div>
+        </div>
+      </div>
+      <div id="popup-message" style="font-size:0.95rem;line-height:1.75;margin-bottom:1.5rem;word-break:break-word"></div>
+      <div id="popup-actions" class="d-flex gap-1"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const MARK_READ_URL = '{{ url_for("user.mark_notifications_read") }}';
+const MARK_ONE_BASE = '/user/notifications/';
+
+const TYPE_META = {
+  like:         { icon: 'fas fa-heart',     label: 'Like',         cls: 'like' },
+  comment:      { icon: 'fas fa-comment',   label: 'Comment',      cls: 'comment' },
+  reply:        { icon: 'fas fa-reply',     label: 'Reply',        cls: 'reply' },
+  follow:       { icon: 'fas fa-user-plus', label: 'New Follower', cls: 'follow' },
+  announcement: { icon: 'fas fa-bullhorn',  label: 'Announcement', cls: 'announcement' },
+};
+
+function openNotifPopup(el) {
+  const id     = el.dataset.notifId;
+  const msg    = el.dataset.message;
+  const type   = el.dataset.type;
+  const time   = el.dataset.time;
+  const link   = el.dataset.link;
+  const isRead = el.dataset.isRead === 'true';
+  const meta   = TYPE_META[type] || { icon: 'fas fa-bell', label: 'Notification', cls: '' };
+
+  document.getElementById('popup-icon').className      = meta.icon;
+  document.getElementById('popup-icon-wrap').className = `notif-icon ${meta.cls}`;
+  document.getElementById('popup-type-label').textContent = meta.label;
+  document.getElementById('popup-time').textContent       = time;
+
+  // Announcements store "title||body" — split and render separately
+  const msgEl = document.getElementById('popup-message');
+  if (msg.includes('||')) {
+    const sep      = msg.indexOf('||');
+    const annTitle = msg.substring(0, sep).trim();
+    const annBody  = msg.substring(sep + 2).trim();
+    const rendered = renderMarkdown(annBody);
+    msgEl.innerHTML = `<strong style="display:block;font-family:var(--font-serif);font-size:1.15rem;margin-bottom:0.75rem;color:var(--text)">${annTitle}</strong>${rendered}`;
+  } else {
+    msgEl.innerHTML = msg;
+  }
+
+  const actions = document.getElementById('popup-actions');
+  actions.innerHTML = '';
+  if (link && link !== '#') {
+    const a = document.createElement('a');
+    a.href = link; a.className = 'btn btn-primary btn-sm';
+    a.innerHTML = '<i class="fas fa-arrow-right"></i> View';
+    actions.appendChild(a);
+  }
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'btn btn-secondary btn-sm';
+  closeBtn.textContent = 'Close';
+  closeBtn.onclick = closeNotifPopup;
+  actions.appendChild(closeBtn);
+
+  document.getElementById('notifPopupOverlay').classList.add('open');
+
+  // Mark as read if unread
+  if (!isRead) {
+    fetch(`${MARK_ONE_BASE}${id}/read`, {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(() => {
+      el.classList.remove('unread');
+      el.dataset.isRead = 'true';
+      const p = el.querySelector('p');
+      if (p) p.style.fontWeight = '400';
+      const dot = el.querySelector('.unread-dot');
+      if (dot) dot.remove();
+      updateNavBadge(-1);
+    });
+  }
+}
+
+function closeNotifPopup() {
+  document.getElementById('notifPopupOverlay').classList.remove('open');
+}
+function closePopupOnOverlay(e) {
+  if (e.target === document.getElementById('notifPopupOverlay')) closeNotifPopup();
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNotifPopup(); });
+
+// Mark ALL read on current page — AJAX, stays on page
+document.getElementById('mark-all-read-btn')?.addEventListener('click', function () {
+  fetch(MARK_READ_URL, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(r => r.json())
+  .then(() => {
+    let count = 0;
+    document.querySelectorAll('.notif-item.unread').forEach(el => {
+      el.classList.remove('unread');
+      el.dataset.isRead = 'true';
+      const p = el.querySelector('p');
+      if (p) p.style.fontWeight = '400';
+      const dot = el.querySelector('.unread-dot');
+      if (dot) { dot.remove(); count++; }
+    });
+    updateNavBadge(-count);
+    const sub = document.querySelector('.container-md .text-muted.text-sm.mt-1');
+    if (sub) sub.remove();
+    const btn = document.getElementById('mark-all-read-btn');
+    btn.innerHTML = '<i class="fas fa-check"></i> All read';
+    btn.disabled = true;
+  });
+});
+
+function renderMarkdown(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/^### (.+)$/gm, '<h4 style="font-family:var(--font-serif);font-size:1rem;font-weight:700;margin:1rem 0 0.25rem;color:var(--text)">$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3 style="font-family:var(--font-serif);font-size:1.1rem;font-weight:700;margin:1rem 0 0.25rem;color:var(--text)">$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2 style="font-family:var(--font-serif);font-size:1.2rem;font-weight:700;margin:1rem 0 0.25rem;color:var(--text)">$1</h2>')
+    .replace(/^\* (.+)$/gm, '<li style="margin-left:1.5rem;margin-bottom:0.25rem;list-style:disc">$1</li>')
+    .replace(/(<li[\s\S]*?<\/li>)/g, '<ul style="margin:0.5rem 0;padding:0">$1</ul>')
+    .replace(/\n\n/g, '</p><p style="margin:0.5rem 0">')
+    .replace(/\n/g, '<br>');
+}
+
+function updateNavBadge(delta) {
+  const badge = document.querySelector('.notif-badge');
+  if (!badge) return;
+  const next = parseInt(badge.textContent, 10) + delta;
+  if (next <= 0) badge.remove();
+  else badge.textContent = next;
+}
+</script>
+{% endblock %}

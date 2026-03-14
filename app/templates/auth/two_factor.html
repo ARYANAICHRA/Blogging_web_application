@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Two-Factor Auth — BlogSphere{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo"><div class="brand">✦ BlogSphere</div></div>
+    <div style="text-align:center;margin-bottom:1.5rem">
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--info-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:var(--info)">
+        <i class="fas fa-shield-alt"></i>
+      </div>
+      <h1 class="auth-title">Two-Factor Auth</h1>
+      <p class="auth-sub">Enter the 6-digit code from your authenticator app, or use email OTP.</p>
+    </div>
+
+    <!-- App TOTP -->
+    <form method="POST" id="app-form">
+      <input type="hidden" name="method" value="app">
+      <div class="form-group">
+        <label class="form-label">Authenticator Code</label>
+        <input type="text" name="token" class="form-control" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="font-family:var(--font-mono);font-size:1.5rem;text-align:center;letter-spacing:0.2em">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Verify</button>
+    </form>
+
+    <div class="auth-divider">or</div>
+
+    <!-- Email OTP -->
+    <a href="{{ url_for('auth.send_2fa_email') }}" class="btn btn-secondary btn-block mb-3">
+      <i class="fas fa-envelope"></i> Send code via Email
+    </a>
+
+    <form method="POST" id="email-form" class="hidden">
+      <input type="hidden" name="method" value="email">
+      <div class="form-group">
+        <label class="form-label">Email OTP</label>
+        <div class="otp-container">
+          {% for i in range(6) %}
+            <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric">
+          {% endfor %}
+        </div>
+        <input type="hidden" name="token" id="email-otp-hidden">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Verify Email OTP</button>
+    </form>
+
+    <p class="auth-footer mt-2"><a href="{{ url_for('auth.login') }}" class="text-accent"><i class="fas fa-arrow-left"></i> Back to Login</a></p>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+// When email OTP link clicked, show email form
+document.querySelector('a[href*="send_2fa_email"]')?.addEventListener('click', function(e) {
+  setTimeout(() => {
+    document.getElementById('email-form').classList.remove('hidden');
+    document.getElementById('app-form').classList.add('hidden');
+  }, 100);
+});
+document.querySelector('#email-form .otp-form')?.addEventListener('submit', function() {
+  const digits = Array.from(document.querySelectorAll('#email-form .otp-input')).map(i=>i.value).join('');
+  document.getElementById('email-otp-hidden').value = digits;
+});
+</script>
+{% endblock %}

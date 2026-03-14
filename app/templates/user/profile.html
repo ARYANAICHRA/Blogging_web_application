@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}{{ user.username }}'s Profile — BlogSphere{% endblock %}
+{% block content %}
+<div class="container page-pad">
+  <!-- HERO -->
+  <div class="profile-hero">
+    <img src="{{ url_for('static', filename='uploads/avatars/' + user.avatar) }}"
+         class="avatar avatar-xl" style="margin:0 auto 1rem"
+         onerror="this.src='https://ui-avatars.com/api/?name={{ user.username }}&background=c8502a&color=fff&size=128'">
+    <h1 style="font-family:var(--font-serif);font-size:2rem">{{ user.username }}</h1>
+    {% if user.bio %}<p class="text-muted mt-1" style="max-width:500px;margin:0.5rem auto">{{ user.bio }}</p>{% endif %}
+    <div class="profile-stats">
+      <div class="profile-stat"><div class="profile-stat-value">{{ posts|length }}</div><div class="profile-stat-label">Posts</div></div>
+      <div class="profile-stat"><div class="profile-stat-value">{{ user.followers.count() }}</div><div class="profile-stat-label">Followers</div></div>
+      <div class="profile-stat"><div class="profile-stat-value">{{ user.followed.count() }}</div><div class="profile-stat-label">Following</div></div>
+    </div>
+    <div class="d-flex gap-1 mt-3" style="justify-content:center">
+      {% if current_user.is_authenticated and current_user != user %}
+        <button class="btn {{ 'btn-secondary' if is_following else 'btn-primary' }}" data-action="follow" data-user-id="{{ user.id }}">
+          {{ 'Unfollow' if is_following else 'Follow' }}
+        </button>
+      {% elif current_user.is_authenticated and current_user == user %}
+        <a href="{{ url_for('user.edit_profile') }}" class="btn btn-secondary"><i class="fas fa-edit"></i> Edit Profile</a>
+      {% endif %}
+    </div>
+    {% if user.is_blocked %}
+      <div class="tag" style="background:var(--danger-bg);color:var(--danger);margin-top:1rem">Account Blocked</div>
+    {% endif %}
+  </div>
+
+  <!-- POSTS GRID -->
+  {% if posts %}
+    <div class="grid grid-3">
+      {% for post in posts %}
+        <article class="post-card">
+          {% if post.cover_image %}
+            <div class="post-card-img">
+              <a href="{{ url_for('blog.view_post', slug=post.slug) }}">
+                <img src="{{ url_for('static', filename='uploads/posts/' + post.cover_image) }}" alt="{{ post.title }}">
+              </a>
+            </div>
+          {% endif %}
+          <div class="post-card-body">
+            <div class="post-card-meta">{{ post.published_at.strftime('%b %d, %Y') if post.published_at }}</div>
+            <h3 class="post-card-title"><a href="{{ url_for('blog.view_post', slug=post.slug) }}">{{ post.title }}</a></h3>
+            <p class="post-card-excerpt">{{ post.excerpt }}</p>
+            <div class="post-card-footer">
+              <span><i class="fas fa-eye"></i> {{ post.views }}</span>
+              <span><i class="fas fa-heart"></i> {{ post.like_count }}</span>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state"><i class="fas fa-newspaper"></i><h3>No posts yet</h3></div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('[data-action="follow"]').forEach(btn => {
+  btn.addEventListener('click', function () {
+    const userId = this.dataset.userId;
+    fetch(`/user/follow/${userId}`, {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+      document.querySelectorAll('[data-action="follow"]').forEach(b => {
+        b.textContent = data.following ? 'Unfollow' : 'Follow';
+        b.classList.toggle('btn-primary', !data.following);
+        b.classList.toggle('btn-secondary', data.following);
+      });
+      // Update follower count
+      const fc = document.querySelector('.profile-stat-value');
+      const statLabels = document.querySelectorAll('.profile-stat-label');
+      statLabels.forEach((label, i) => {
+        if (label.textContent.trim() === 'Followers') {
+          const valEl = label.previousElementSibling;
+          if (valEl) valEl.textContent = data.count;
+        }
+      });
+    });
+  });
+});
+</script>
+{% endblock %}
+

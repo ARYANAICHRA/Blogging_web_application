@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard — BlogSphere{% endblock %}
+{% block content %}
+<div class="admin-layout">
+  <!-- SIDEBAR -->
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-title">Overview</div>
+    <a href="{{ url_for('admin.dashboard') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.dashboard' }}"><i class="fas fa-gauge"></i> Dashboard</a>
+    <div class="admin-sidebar-title">Users</div>
+    <a href="{{ url_for('admin.users') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.users' }}"><i class="fas fa-users"></i> All Users</a>
+    <div class="admin-sidebar-title">Content</div>
+    <a href="{{ url_for('admin.posts') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.posts' }}"><i class="fas fa-newspaper"></i> All Posts</a>
+    <a href="{{ url_for('admin.comments') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.comments' }}"><i class="fas fa-comments"></i> Comments</a>
+    <div class="admin-sidebar-title">Communication</div>
+    <a href="{{ url_for('admin.announcement') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.announcement' }}"><i class="fas fa-bullhorn"></i> Announcement</a>
+    <div class="admin-sidebar-title">Account</div>
+    <a href="{{ url_for('user.dashboard') }}" class="admin-nav-link"><i class="fas fa-user"></i> My Profile</a>
+    <a href="{{ url_for('auth.logout') }}" class="admin-nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="admin-main">
+    <div class="d-flex justify-between align-center mb-4">
+      <div>
+        <h1>Admin Dashboard</h1>
+        <p class="text-muted text-sm">Welcome back, {{ current_user.username }}</p>
+      </div>
+      <span class="tag tag-admin"><i class="fas fa-shield-alt"></i> Administrator</span>
+    </div>
+
+    <!-- STATS -->
+    <div class="stat-grid mb-4">
+      <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+        <div><div class="stat-value">{{ total_users }}</div><div class="stat-label">Total Users</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon orange"><i class="fas fa-newspaper"></i></div>
+        <div><div class="stat-value">{{ total_posts }}</div><div class="stat-label">Total Posts</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+        <div><div class="stat-value">{{ published_posts }}</div><div class="stat-label">Published</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-comments"></i></div>
+        <div><div class="stat-value">{{ total_comments }}</div><div class="stat-label">Comments</div></div>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <!-- RECENT USERS -->
+      <div class="card">
+        <div class="card-header d-flex justify-between align-center">
+          <strong>Recent Users</strong>
+          <a href="{{ url_for('admin.users') }}" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>User</th><th>Joined</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for u in recent_users %}
+              <tr>
+                <td>
+                  <div class="d-flex align-center gap-1">
+                    <img src="{{ url_for('static', filename='uploads/avatars/' + u.avatar) }}" class="avatar avatar-sm" onerror="this.src='https://ui-avatars.com/api/?name={{ u.username }}&background=c8502a&color=fff&size=128'">
+                    <div>
+                      <a href="{{ url_for('admin.view_user', user_id=u.id) }}" class="fw-bold text-sm">{{ u.username }}</a>
+                      <div class="text-xs text-muted">{{ u.email }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-muted text-sm">{{ u.created_at.strftime('%b %d') }}</td>
+                <td>
+                  {% if u.is_blocked %}<span class="tag" style="background:var(--danger-bg);color:var(--danger)">Blocked</span>
+                  {% elif not u.is_verified %}<span class="tag" style="background:var(--warning-bg);color:var(--warning)">Unverified</span>
+                  {% else %}<span class="tag tag-published">Active</span>{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- MOST LIKED -->
+      <div class="card">
+        <div class="card-header d-flex justify-between align-center">
+          <strong>Most Liked Posts</strong>
+          <a href="{{ url_for('admin.posts') }}" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Post</th><th>Likes</th><th>Views</th></tr></thead>
+            <tbody>
+              {% for p in most_liked %}
+              <tr>
+                <td><a href="{{ url_for('blog.view_post', slug=p.slug) }}" class="fw-bold text-sm">{{ p.title[:40] }}{% if p.title|length > 40 %}…{% endif %}</a></td>
+                <td class="text-muted text-sm"><i class="fas fa-heart text-danger"></i> {{ p.like_count }}</td>
+                <td class="text-muted text-sm"><i class="fas fa-eye"></i> {{ p.views }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- MOST ACTIVE USERS -->
+      <div class="card">
+        <div class="card-header"><strong>Most Active Users</strong></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>User</th><th>Posts</th></tr></thead>
+            <tbody>
+              {% for u, count in active_users %}
+              <tr>
+                <td>
+                  <div class="d-flex align-center gap-1">
+                    <img src="{{ url_for('static', filename='uploads/avatars/' + u.avatar) }}" class="avatar avatar-sm" onerror="this.src='https://ui-avatars.com/api/?name={{ u.username }}&background=c8502a&color=fff&size=128'">
+                    <a href="{{ url_for('admin.view_user', user_id=u.id) }}" class="fw-bold text-sm">{{ u.username }}</a>
+                  </div>
+                </td>
+                <td class="text-muted text-sm">{{ count }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RECENT POSTS -->
+      <div class="card">
+        <div class="card-header d-flex justify-between align-center">
+          <strong>Recent Posts</strong>
+          <a href="{{ url_for('admin.posts') }}" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Post</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody>
+              {% for p in recent_posts %}
+              <tr>
+                <td><a href="{{ url_for('blog.view_post', slug=p.slug) }}" class="fw-bold text-sm">{{ p.title[:35] }}{% if p.title|length > 35 %}…{% endif %}</a></td>
+                <td><span class="tag tag-{{ p.status }}">{{ p.status }}</span></td>
+                <td class="text-muted text-sm">{{ p.created_at.strftime('%b %d') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

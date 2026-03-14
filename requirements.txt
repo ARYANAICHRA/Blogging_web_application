@@ -1,0 +1,16 @@
+Flask==3.0.0
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Flask-Mail==0.10.0
+Flask-WTF==1.2.1
+Flask-Migrate==4.0.5
+Werkzeug==3.0.1
+Pillow>=11.0.0
+python-dotenv==1.0.0
+pyotp==2.9.0
+qrcode==7.4.2
+itsdangerous==2.1.2
+bleach==6.1.0
+Markdown==3.5.1
+WTForms==3.1.1
+email-validator==2.1.0

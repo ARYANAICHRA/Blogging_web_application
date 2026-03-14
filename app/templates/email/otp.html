@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f5f4f0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f0;padding:40px 20px">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+        <!-- Header -->
+        <tr><td style="background:#c8502a;padding:32px 40px;text-align:center">
+          <h1 style="margin:0;color:white;font-size:1.8rem;font-family:Georgia,serif">✦ BlogSphere</h1>
+        </td></tr>
+        <!-- Body -->
+        <tr><td style="padding:40px">
+          <h2 style="margin:0 0 12px;font-size:1.3rem;color:#1a1814">
+            {% if purpose == 'verification' %}Verify Your Email Address
+            {% elif purpose == 'reset' %}Password Reset Code
+            {% else %}Two-Factor Authentication Code{% endif %}
+          </h2>
+          <p style="color:#6b6560;font-size:0.95rem;margin:0 0 24px">
+            Hi <strong>{{ user.username }}</strong>,<br><br>
+            {% if purpose == 'verification' %}
+              Thanks for joining BlogSphere! Please use the code below to verify your email address.
+            {% elif purpose == 'reset' %}
+              We received a request to reset your password. Use the code below.
+            {% else %}
+              Your two-factor authentication code is:
+            {% endif %}
+          </p>
+          <!-- OTP -->
+          <div style="text-align:center;margin:32px 0">
+            <div style="display:inline-block;background:#f5f4f0;border-radius:12px;padding:24px 40px">
+              <span style="font-family:'Courier New',monospace;font-size:3rem;font-weight:700;letter-spacing:0.3em;color:#c8502a">{{ otp }}</span>
+            </div>
+          </div>
+          <p style="color:#9b958d;font-size:0.85rem;text-align:center;margin:0 0 32px">
+            This code expires in <strong>10 minutes</strong>. Do not share it with anyone.
+          </p>
+          <hr style="border:none;border-top:1px solid #e8e6e0;margin:0 0 24px">
+          <p style="color:#9b958d;font-size:0.8rem;margin:0">
+            If you didn't request this, you can safely ignore this email.
+          </p>
+        </td></tr>
+        <!-- Footer -->
+        <tr><td style="background:#f5f4f0;padding:20px 40px;text-align:center">
+          <p style="margin:0;color:#9b958d;font-size:0.78rem">© 2025 BlogSphere — All rights reserved</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Send Announcement — Admin{% endblock %}
+{% block content %}
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-title">Overview</div>
+    <a href="{{ url_for('admin.dashboard') }}" class="admin-nav-link"><i class="fas fa-gauge"></i> Dashboard</a>
+    <div class="admin-sidebar-title">Users</div>
+    <a href="{{ url_for('admin.users') }}" class="admin-nav-link"><i class="fas fa-users"></i> All Users</a>
+    <div class="admin-sidebar-title">Content</div>
+    <a href="{{ url_for('admin.posts') }}" class="admin-nav-link"><i class="fas fa-newspaper"></i> All Posts</a>
+    <a href="{{ url_for('admin.comments') }}" class="admin-nav-link"><i class="fas fa-comments"></i> Comments</a>
+    <div class="admin-sidebar-title">Communication</div>
+    <a href="{{ url_for('admin.announcement') }}" class="admin-nav-link active"><i class="fas fa-bullhorn"></i> Announcement</a>
+  </aside>
+  <main class="admin-main">
+    <h1 class="mb-2">Send Announcement</h1>
+    <p class="text-muted mb-4">This will send a notification to all active users. Optionally also email them.</p>
+    <div class="card" style="max-width:640px">
+      <div class="card-body">
+        <form method="POST">
+          <div class="form-group">
+            <label class="form-label">Announcement Title</label>
+            <input type="text" name="title" class="form-control" placeholder="New Update on BlogSphere" required>
+            <p class="form-hint">Plain text only — do not use # symbols in the title</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Message</label>
+            <textarea name="content" class="form-control" rows="10" placeholder="Write your announcement here...
+
+Markdown supported:
+**bold text**
+### Heading
+* bullet point" required></textarea>
+            <p class="form-hint">Markdown supported — use **bold**, ### heading, * bullet points. New lines are preserved.</p>
+          </div>
+          <div class="form-group" style="display:flex;align-items:center;gap:0.5rem">
+            <input type="checkbox" name="send_email" id="send_email" style="width:16px;height:16px">
+            <label for="send_email" class="text-sm">Also send via email to all users</label>
+          </div>
+          <div class="d-flex gap-1">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-bullhorn"></i> Send Announcement</button>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

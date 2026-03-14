@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Verify Email — BlogSphere{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo"><div class="brand">✦ BlogSphere</div></div>
+    <div style="text-align:center;margin-bottom:1.5rem">
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:var(--accent)">
+        <i class="fas fa-envelope"></i>
+      </div>
+      <h1 class="auth-title">Check your email</h1>
+      <p class="auth-sub">We sent a 6-digit code to<br><strong>{{ email }}</strong></p>
+    </div>
+    <form method="POST" class="otp-form">
+      <input type="hidden" name="otp" id="otp-hidden">
+      <div class="otp-container">
+        {% for i in range(6) %}
+          <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric">
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Verify Email</button>
+    </form>
+    <p class="auth-footer mt-2">
+      Didn't receive it?
+      <a href="{{ url_for('auth.resend_otp') }}" class="text-accent">Resend OTP</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

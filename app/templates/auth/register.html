@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Register — BlogSphere{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo"><div class="brand">✦ BlogSphere</div></div>
+    <h1 class="auth-title">Create account</h1>
+    <p class="auth-sub">Join the community of writers</p>
+    <form method="POST" enctype="multipart/form-data">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-control" placeholder="yourname" required autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="form-control" placeholder="you@example.com" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control" placeholder="Min 8 characters" required autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm Password</label>
+        <input type="password" name="confirm_password" class="form-control" placeholder="Repeat password" required>
+      </div>
+      <div class="form-group" style="text-align:center">
+        <div style="margin-bottom:0.75rem">
+          <img id="avatar-preview" src="" alt=""
+               style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--border);display:none;margin:0 auto 0.75rem">
+        </div>
+        <label for="avatar-input" class="btn btn-secondary btn-sm" style="cursor:pointer">
+          <i class="fas fa-camera"></i> Add Profile Photo
+        </label>
+        <input type="file" name="avatar" id="avatar-input" accept="image/*"
+               style="display:none" onchange="previewAvatar(this)">
+        <p class="form-hint mt-1">Optional — you can add it later too</p>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+    </form>
+    <p class="auth-footer">Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a></p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewAvatar(input) {
+  const file = input.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.getElementById('avatar-preview');
+      img.src = e.target.result;
+      img.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+}
+</script>
+{% endblock %}
+

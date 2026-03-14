@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}{{ user.username }} — Admin{% endblock %}
+{% block content %}
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-title">Overview</div>
+    <a href="{{ url_for('admin.dashboard') }}" class="admin-nav-link"><i class="fas fa-gauge"></i> Dashboard</a>
+    <div class="admin-sidebar-title">Users</div>
+    <a href="{{ url_for('admin.users') }}" class="admin-nav-link active"><i class="fas fa-users"></i> All Users</a>
+    <div class="admin-sidebar-title">Content</div>
+    <a href="{{ url_for('admin.posts') }}" class="admin-nav-link"><i class="fas fa-newspaper"></i> All Posts</a>
+    <a href="{{ url_for('admin.comments') }}" class="admin-nav-link"><i class="fas fa-comments"></i> Comments</a>
+    <div class="admin-sidebar-title">Communication</div>
+    <a href="{{ url_for('admin.announcement') }}" class="admin-nav-link"><i class="fas fa-bullhorn"></i> Announcement</a>
+  </aside>
+  <main class="admin-main">
+    <a href="{{ url_for('admin.users') }}" class="btn btn-ghost btn-sm mb-3"><i class="fas fa-arrow-left"></i> Back to Users</a>
+    <div class="grid grid-2 mb-4" style="align-items:start">
+      <!-- User Info -->
+      <div class="card">
+        <div class="card-body" style="text-align:center">
+          <img src="{{ url_for('static', filename='uploads/avatars/' + user.avatar) }}" class="avatar avatar-xl" style="margin:0 auto 1rem" onerror="this.src='https://ui-avatars.com/api/?name={{ user.username }}&background=c8502a&color=fff&size=128'">
+          <h2>{{ user.username }}</h2>
+          <p class="text-muted text-sm">{{ user.email }}</p>
+          {% if user.bio %}<p class="text-sm mt-1">{{ user.bio }}</p>{% endif %}
+          <div class="d-flex gap-2 mt-2" style="justify-content:center">
+            <div style="text-align:center"><div class="fw-bold">{{ posts|length }}</div><div class="text-xs text-muted">Posts</div></div>
+            <div style="text-align:center"><div class="fw-bold">{{ user.followers.count() }}</div><div class="text-xs text-muted">Followers</div></div>
+            <div style="text-align:center"><div class="fw-bold">{{ user.followed.count() }}</div><div class="text-xs text-muted">Following</div></div>
+          </div>
+          <div class="separator"></div>
+          <div style="text-align:left;font-size:0.85rem" class="text-muted">
+            <div class="mb-1"><strong>Joined:</strong> {{ user.created_at.strftime('%B %d, %Y') }}</div>
+            <div class="mb-1"><strong>Last Seen:</strong> {{ user.last_seen.strftime('%B %d, %Y') if user.last_seen }}</div>
+            <div class="mb-1"><strong>Verified:</strong> {{ '✅' if user.is_verified else '❌' }}</div>
+            <div class="mb-1"><strong>2FA:</strong> {{ '✅ Enabled' if user.two_factor_enabled else 'Disabled' }}</div>
+            <div><strong>Status:</strong> {{ '🚫 Blocked' if user.is_blocked else '✅ Active' }}</div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="d-flex gap-1 flex-wrap">
+            <form method="POST" action="{{ url_for('admin.block_user', user_id=user.id) }}" style="display:inline">
+              <button class="btn btn-sm {{ 'btn-success' if user.is_blocked else 'btn-outline' }}">
+                <i class="fas {{ 'fa-unlock' if user.is_blocked else 'fa-ban' }}"></i>
+                {{ 'Unblock' if user.is_blocked else 'Block' }}
+              </button>
+            </form>
+            <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" onsubmit="return confirm('Delete user and ALL their content?')">
+              <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Delete</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reset Password -->
+      <div class="card">
+        <div class="card-header"><strong>Reset Password</strong></div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('admin.reset_user_password', user_id=user.id) }}">
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input type="password" name="password" class="form-control" placeholder="Min 8 characters" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Reset Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- User's Posts -->
+    <div class="card">
+      <div class="card-header"><strong>Posts by {{ user.username }}</strong> ({{ posts|length }})</div>
+      {% if posts %}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Title</th><th>Status</th><th>Views</th><th>Likes</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody>
+              {% for p in posts %}
+              <tr>
+                <td><a href="{{ url_for('blog.view_post', slug=p.slug) }}" class="fw-bold text-sm">{{ p.title[:50] }}{% if p.title|length > 50 %}…{% endif %}</a></td>
+                <td><span class="tag tag-{{ p.status }}">{{ p.status }}</span></td>
+                <td class="text-muted text-sm">{{ p.views }}</td>
+                <td class="text-muted text-sm">{{ p.like_count }}</td>
+                <td class="text-muted text-sm">{{ p.created_at.strftime('%b %d, %Y') }}</td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <a href="{{ url_for('blog.edit_post', post_id=p.id) }}" class="btn btn-sm btn-secondary"><i class="fas fa-edit"></i></a>
+                    <form method="POST" action="{{ url_for('admin.delete_post', post_id=p.id) }}" onsubmit="return confirm('Delete?')" style="display:inline">
+                      <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="card-body"><p class="text-muted text-sm">No posts yet.</p></div>
+      {% endif %}
+    </div>
+  </main>
+</div>
+{% endblock %}

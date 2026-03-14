@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}BlogSphere{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="{{ url_for('blog.index') }}" class="nav-brand">
+      <span class="brand-icon">✦</span> BlogSphere
+    </a>
+    <div class="nav-links">
+      <a href="{{ url_for('blog.index') }}" class="nav-link">Explore</a>
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('user.following_feed') }}" class="nav-link">Feed</a>
+        {% if current_user.role == 'admin' %}
+          <a href="{{ url_for('admin.dashboard') }}" class="nav-link nav-admin">
+            <i class="fas fa-shield-alt"></i> Admin
+          </a>
+        {% endif %}
+      {% endif %}
+    </div>
+    <div class="nav-actions">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+        <i class="fas fa-moon" id="theme-icon"></i>
+      </button>
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('blog.new_post') }}" class="btn btn-primary btn-sm">
+          <i class="fas fa-pen"></i> Write
+        </a>
+        <div class="nav-dropdown">
+          <button class="avatar-btn">
+            <img src="{{ url_for('static', filename='uploads/avatars/' + current_user.avatar) }}" 
+                 alt="{{ current_user.username }}"
+                 onerror="this.src='https://ui-avatars.com/api/?name={{ current_user.username }}&background=c8502a&color=fff&size=128'">
+            {% set notif_count = current_user.unread_notification_count() %}
+            {% if notif_count > 0 %}
+              <span class="notif-badge">{{ notif_count }}</span>
+            {% endif %}
+          </button>
+          <div class="dropdown-menu">
+            <div class="dropdown-header">
+              <strong>{{ current_user.username }}</strong>
+              <small>{{ current_user.email }}</small>
+            </div>
+            <a href="{{ url_for('user.dashboard') }}"><i class="fas fa-gauge"></i> Dashboard</a>
+            <a href="{{ url_for('user.profile', username=current_user.username) }}"><i class="fas fa-user"></i> Profile</a>
+            <a href="{{ url_for('user.notifications') }}">
+              <i class="fas fa-bell"></i> Notifications
+              {% if notif_count > 0 %}<span class="badge-sm">{{ notif_count }}</span>{% endif %}
+            </a>
+            <a href="{{ url_for('user.bookmarks') }}"><i class="fas fa-bookmark"></i> Bookmarks</a>
+            <a href="{{ url_for('user.edit_profile') }}"><i class="fas fa-cog"></i> Settings</a>
+            <div class="dropdown-divider"></div>
+            <a href="{{ url_for('auth.logout') }}" class="text-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+          </div>
+        </div>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" class="btn btn-ghost btn-sm">Login</a>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">Sign Up</a>
+      {% endif %}
+    </div>
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+      <i class="fas fa-bars"></i>
+    </button>
+  </div>
+</nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="{{ url_for('blog.index') }}">Explore</a>
+  {% if current_user.is_authenticated %}
+    <a href="{{ url_for('user.following_feed') }}">Feed</a>
+    <a href="{{ url_for('blog.new_post') }}">Write</a>
+    <a href="{{ url_for('user.dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('user.notifications') }}">Notifications</a>
+    <a href="{{ url_for('user.bookmarks') }}">Bookmarks</a>
+    <a href="{{ url_for('user.edit_profile') }}">Settings</a>
+    {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('admin.dashboard') }}">Admin Panel</a>
+    {% endif %}
+    <a href="{{ url_for('auth.logout') }}">Logout</a>
+  {% else %}
+    <a href="{{ url_for('auth.login') }}">Login</a>
+    <a href="{{ url_for('auth.register') }}">Sign Up</a>
+  {% endif %}
+</div>
+
+<!-- FLASH MESSAGES -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-container">
+      {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">
+          <span>{{ msg }}</span>
+          <button onclick="this.parentElement.remove()">×</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- MAIN -->
+<main class="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="brand-icon">✦</span> BlogSphere
+      <p>A place to share your thoughts with the world.</p>
+    </div>
+    <div class="footer-links">
+      <a href="{{ url_for('blog.index') }}">Explore</a>
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('blog.new_post') }}">Write</a>
+        <a href="{{ url_for('user.dashboard') }}">Dashboard</a>
+      {% else %}
+        <a href="{{ url_for('auth.register') }}">Join</a>
+        <a href="{{ url_for('auth.login') }}">Login</a>
+      {% endif %}
+    </div>
+    <p class="footer-copy">© 2025 BlogSphere. Built with Flask.</p>
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

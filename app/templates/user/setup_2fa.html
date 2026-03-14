@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Two-Factor Auth Setup — BlogSphere{% endblock %}
+{% block content %}
+<div class="container-sm page-pad">
+  <h1 class="mb-4">Two-Factor Authentication</h1>
+
+  {% if current_user.two_factor_enabled %}
+    <div class="card mb-3" style="border-color:var(--success)">
+      <div class="card-body d-flex align-center gap-2">
+        <div style="color:var(--success);font-size:1.5rem"><i class="fas fa-check-circle"></i></div>
+        <div>
+          <strong>2FA is enabled</strong>
+          <p class="text-muted text-sm" style="margin:0">Your account is protected with two-factor authentication.</p>
+        </div>
+      </div>
+    </div>
+    <form method="POST">
+      <input type="hidden" name="action" value="disable">
+      <button type="submit" class="btn btn-danger" onclick="return confirm('Disable 2FA?')">
+        <i class="fas fa-shield-alt"></i> Disable 2FA
+      </button>
+    </form>
+  {% else %}
+    <div class="card mb-3">
+      <div class="card-body">
+        <p class="text-muted mb-3">Two-factor authentication adds an extra layer of security. You'll need an authenticator app like Google Authenticator or Authy.</p>
+
+        {% if not current_user.two_factor_secret %}
+          <form method="POST">
+            <input type="hidden" name="action" value="generate">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-qrcode"></i> Generate QR Code
+            </button>
+          </form>
+        {% else %}
+          <div style="text-align:center;margin-bottom:1.5rem">
+            <p class="text-sm mb-2">Scan this QR code with your authenticator app:</p>
+            {% if qr_code %}
+              <img src="data:image/png;base64,{{ qr_code }}" style="border:4px solid white;border-radius:var(--radius);max-width:200px;margin:0 auto">
+            {% endif %}
+            <p class="text-muted text-xs mt-2">Or enter this secret manually:<br>
+              <code style="background:var(--surface-alt);padding:4px 8px;border-radius:4px;font-size:0.85rem">{{ current_user.two_factor_secret }}</code>
+            </p>
+          </div>
+          <form method="POST">
+            <input type="hidden" name="action" value="enable">
+            <div class="form-group">
+              <label class="form-label">Enter code from app to confirm</label>
+              <input type="text" name="token" class="form-control" placeholder="000000" maxlength="6" inputmode="numeric" style="font-family:var(--font-mono);font-size:1.4rem;text-align:center;letter-spacing:0.2em">
+            </div>
+            <div class="d-flex gap-1">
+              <button type="submit" class="btn btn-success">Enable 2FA</button>
+              <a href="{{ url_for('user.dashboard') }}" class="btn btn-ghost">Cancel</a>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

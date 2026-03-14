@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Manage Comments — Admin{% endblock %}
+{% block content %}
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-title">Overview</div>
+    <a href="{{ url_for('admin.dashboard') }}" class="admin-nav-link"><i class="fas fa-gauge"></i> Dashboard</a>
+    <div class="admin-sidebar-title">Users</div>
+    <a href="{{ url_for('admin.users') }}" class="admin-nav-link"><i class="fas fa-users"></i> All Users</a>
+    <div class="admin-sidebar-title">Content</div>
+    <a href="{{ url_for('admin.posts') }}" class="admin-nav-link"><i class="fas fa-newspaper"></i> All Posts</a>
+    <a href="{{ url_for('admin.comments') }}" class="admin-nav-link active"><i class="fas fa-comments"></i> Comments</a>
+    <div class="admin-sidebar-title">Communication</div>
+    <a href="{{ url_for('admin.announcement') }}" class="admin-nav-link"><i class="fas fa-bullhorn"></i> Announcement</a>
+  </aside>
+  <main class="admin-main">
+    <h1 class="mb-4">All Comments</h1>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Author</th><th>Comment</th><th>Post</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for c in comments.items %}
+            <tr>
+              <td><a href="{{ url_for('admin.view_user', user_id=c.author.id) }}" class="fw-bold text-sm">{{ c.author.username }}</a></td>
+              <td class="text-sm text-muted" style="max-width:250px">{{ c.content[:80] }}{% if c.content|length > 80 %}…{% endif %}</td>
+              <td><a href="{{ url_for('blog.view_post', slug=c.post.slug) }}" class="text-sm text-accent">{{ c.post.title[:30] }}…</a></td>
+              <td class="text-muted text-sm">{{ c.created_at.strftime('%b %d') }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('admin.delete_comment', comment_id=c.id) }}" onsubmit="return confirm('Remove comment?')" style="display:inline">
+                  <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Remove</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% if comments.pages > 1 %}
+      <div class="pagination">
+        {% if comments.has_prev %}<a href="{{ url_for('admin.comments', page=comments.prev_num) }}" class="page-link"><i class="fas fa-chevron-left"></i></a>{% endif %}
+        {% for p in comments.iter_pages() %}
+          {% if p %}<a href="{{ url_for('admin.comments', page=p) }}" class="page-link {{ 'active' if p == comments.page }}">{{ p }}</a>
+          {% else %}<span class="page-link">…</span>{% endif %}
+        {% endfor %}
+        {% if comments.has_next %}<a href="{{ url_for('admin.comments', page=comments.next_num) }}" class="page-link"><i class="fas fa-chevron-right"></i></a>{% endif %}
+      </div>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+<!-- LOGIN -->
+{% extends 'base.html' %}
+{% block title %}Login — BlogSphere{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo"><div class="brand">✦ BlogSphere</div></div>
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-sub">Sign in to continue writing</p>
+    <form method="POST">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="form-control" placeholder="you@example.com" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;justify-content:space-between">
+          Password <a href="{{ url_for('auth.forgot_password') }}" class="text-accent text-sm">Forgot?</a>
+        </label>
+        <input type="password" name="password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:0.5rem">
+        <input type="checkbox" name="remember" id="remember" style="width:16px;height:16px">
+        <label for="remember" class="text-sm">Remember me</label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+    </form>
+    <p class="auth-footer">Don't have an account? <a href="{{ url_for('auth.register') }}">Sign up</a></p>
+  </div>
+</div>
+{% endblock %}

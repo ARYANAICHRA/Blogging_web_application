@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Manage Posts — Admin{% endblock %}
+{% block content %}
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-title">Overview</div>
+    <a href="{{ url_for('admin.dashboard') }}" class="admin-nav-link"><i class="fas fa-gauge"></i> Dashboard</a>
+    <div class="admin-sidebar-title">Users</div>
+    <a href="{{ url_for('admin.users') }}" class="admin-nav-link"><i class="fas fa-users"></i> All Users</a>
+    <div class="admin-sidebar-title">Content</div>
+    <a href="{{ url_for('admin.posts') }}" class="admin-nav-link active"><i class="fas fa-newspaper"></i> All Posts</a>
+    <a href="{{ url_for('admin.comments') }}" class="admin-nav-link"><i class="fas fa-comments"></i> Comments</a>
+    <div class="admin-sidebar-title">Communication</div>
+    <a href="{{ url_for('admin.announcement') }}" class="admin-nav-link"><i class="fas fa-bullhorn"></i> Announcement</a>
+  </aside>
+  <main class="admin-main">
+    <div class="d-flex justify-between align-center mb-4">
+      <h1>All Posts</h1>
+      <span class="text-muted text-sm">{{ posts.total }} posts</span>
+    </div>
+    <!-- Search + Filter -->
+    <form method="GET" class="d-flex gap-1 mb-4 flex-wrap">
+      <input type="text" name="q" value="{{ q }}" placeholder="Search posts…" class="form-control" style="flex:1;min-width:200px">
+      <select name="status" class="form-control" style="width:140px">
+        <option value="">All Status</option>
+        <option value="published" {{ 'selected' if status_filter == 'published' }}>Published</option>
+        <option value="draft" {{ 'selected' if status_filter == 'draft' }}>Draft</option>
+        <option value="archived" {{ 'selected' if status_filter == 'archived' }}>Archived</option>
+      </select>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      {% if q or status_filter %}<a href="{{ url_for('admin.posts') }}" class="btn btn-secondary">Clear</a>{% endif %}
+    </form>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Title</th><th>Author</th><th>Status</th><th>Views</th><th>Likes</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for p in posts.items %}
+            <tr>
+              <td><a href="{{ url_for('blog.view_post', slug=p.slug) }}" class="fw-bold text-sm">{{ p.title[:45] }}{% if p.title|length > 45 %}…{% endif %}</a></td>
+              <td><a href="{{ url_for('admin.view_user', user_id=p.author.id) }}" class="text-sm text-muted">{{ p.author.username }}</a></td>
+              <td><span class="tag tag-{{ p.status }}">{{ p.status }}</span></td>
+              <td class="text-muted text-sm">{{ p.views }}</td>
+              <td class="text-muted text-sm">{{ p.like_count }}</td>
+              <td class="text-muted text-sm">{{ p.created_at.strftime('%b %d, %Y') }}</td>
+              <td>
+                <div class="d-flex gap-1">
+                  <a href="{{ url_for('blog.edit_post', post_id=p.id) }}" class="btn btn-sm btn-secondary"><i class="fas fa-edit"></i></a>
+                  <form method="POST" action="{{ url_for('admin.archive_post', post_id=p.id) }}" style="display:inline">
+                    <button class="btn btn-sm btn-outline" title="Archive"><i class="fas fa-archive"></i></button>
+                  </form>
+                  <form method="POST" action="{{ url_for('admin.toggle_comments', post_id=p.id) }}" style="display:inline">
+                    <button class="btn btn-sm btn-outline" title="{{ 'Enable' if p.comments_disabled else 'Disable' }} Comments">
+                      <i class="fas {{ 'fa-comment' if p.comments_disabled else 'fa-comment-slash' }}"></i>
+                    </button>
+                  </form>
+                  <form method="POST" action="{{ url_for('admin.delete_post', post_id=p.id) }}" onsubmit="return confirm('Delete post?')" style="display:inline">
+                    <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% if posts.pages > 1 %}
+      <div class="pagination">
+        {% if posts.has_prev %}<a href="{{ url_for('admin.posts', page=posts.prev_num, q=q, status=status_filter) }}" class="page-link"><i class="fas fa-chevron-left"></i></a>{% endif %}
+        {% for p in posts.iter_pages() %}
+          {% if p %}<a href="{{ url_for('admin.posts', page=p, q=q, status=status_filter) }}" class="page-link {{ 'active' if p == posts.page }}">{{ p }}</a>
+          {% else %}<span class="page-link">…</span>{% endif %}
+        {% endfor %}
+        {% if posts.has_next %}<a href="{{ url_for('admin.posts', page=posts.next_num, q=q, status=status_filter) }}" class="page-link"><i class="fas fa-chevron-right"></i></a>{% endif %}
+      </div>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}
