@@ -27,6 +27,172 @@
     </div>
   </div>
 
+  <!-- BONUS STATUS CARD -->
+  {% if current_user.upi_id %}
+    <div class="card mb-4" style="background: linear-gradient(135deg, rgba(72, 142, 210, 0.08) 0%, rgba(209, 250, 229, 0.08) 100%); border: 2px solid rgba(72, 142, 210, 0.3); border-radius: var(--radius);">
+      <div style="padding: 1.4rem; text-align: center;">
+        <!-- Header -->
+        <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 1.2rem;">
+          <i class="fas fa-gift" style="color: rgba(72, 142, 210, 0.7); font-size: 1.4rem;"></i>
+          <h2 style="margin: 0; color: var(--text); font-size: 1.3rem; font-weight: 700;">Signup Bonus Status</h2>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; margin-bottom: 1.2rem;">
+          <!-- UPI ID -->
+          <div>
+            <p style="margin: 0 0 0.45rem; color: var(--text-muted); font-size: 0.9rem; letter-spacing: 0.5px;">UPI ID</p>
+            <p style="margin: 0; color: var(--text); font-weight: 600; font-family: var(--font-mono); font-size: 1.05rem;">{{ current_user.upi_id }}</p>
+          </div>
+
+          <!-- Payment Status -->
+          <div>
+            <p style="margin: 0 0 0.45rem; color: var(--text-muted); font-size: 0.9rem; letter-spacing: 0.5px;">Payment Status</p>
+            {% if current_user.upi_reward_received %}
+              <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.42rem 0.82rem; background: var(--success-bg); color: var(--success); border-radius: var(--radius-sm); font-weight: 600; font-size: 0.9rem;">
+                <i class="fas fa-check-circle"></i> Completed
+              </span>
+            {% else %}
+              <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.42rem 0.82rem; background: var(--warning-bg); color: var(--warning); border-radius: var(--radius-sm); font-weight: 600; font-size: 0.9rem;">
+                <i class="fas fa-clock"></i> Pending
+              </span>
+            {% endif %}
+          </div>
+
+          <!-- Bonus Amount -->
+          <div>
+            <p style="margin: 0 0 0.45rem; color: var(--text-muted); font-size: 0.9rem; letter-spacing: 0.5px;">Bonus Amount</p>
+            <p style="margin: 0; color: var(--text); font-weight: 700; font-size: 1.15rem;">₹ 1000</p>
+          </div>
+
+          <!-- Bonus Claimed On -->
+          <div>
+            <p style="margin: 0 0 0.45rem; color: var(--text-muted); font-size: 0.9rem; letter-spacing: 0.5px;">Bonus Claimed On</p>
+            <p style="margin: 0; color: var(--text); font-weight: 600; font-size: 0.98rem;">{{ current_user.created_at.strftime('%d %B %Y') }}</p>
+          </div>
+        </div>
+
+        <!-- Time Notice -->
+        {% if not current_user.upi_reward_received %}
+          <div style="padding: 0.75rem; background: rgba(255, 193, 7, 0.1); border-left: 4px solid var(--warning); border-radius: 4px; margin-bottom: 1rem;">
+            <p style="margin: 0; color: var(--warning); font-weight: 500; font-size: 0.9rem;">
+              <i class="fas fa-info-circle"></i> Should receive within 24 hours
+            </p>
+          </div>
+        {% else %}
+          <div style="padding: 0.75rem; background: rgba(76, 175, 80, 0.1); border-left: 4px solid var(--success); border-radius: 4px; margin-bottom: 1rem;">
+            <p style="margin: 0; color: var(--success); font-weight: 500; font-size: 0.9rem;">
+              <i class="fas fa-check"></i> Bonus received on {{ current_user.upi_reward_date.strftime('%d %B %Y, %I:%M %p') }}
+            </p>
+          </div>
+        {% endif %}
+
+        <!-- Full Name -->
+        <div style="border-top: 1px solid rgba(72, 142, 210, 0.2); padding-top: 1rem;">
+          <p style="margin: 0 0 0.45rem; color: var(--text-muted); font-size: 0.9rem; letter-spacing: 0.5px;">Full Name</p>
+          <p style="margin: 0; color: var(--text); font-weight: 600; font-size: 1rem;">{{ current_user.full_name or current_user.username }}</p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- FREE GIFTS & AI CONNECTORS SECTION -->
+  <div class="card mb-4" style="background: linear-gradient(135deg, rgba(42, 111, 200, 0.08) 0%, rgba(213, 50, 50, 0.08) 100%); border: 2px solid var(--accent);">
+    <div class="card-header d-flex justify-between align-center" style="background: linear-gradient(135deg, var(--accent) 0%, #a83b1e 100%); color: white;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <i class="fas fa-gift" style="font-size: 1.3rem;"></i>
+        <strong>BlogSphere Premium Features</strong>
+      </div>
+      {% if current_user.free_gift_enabled %}
+        <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; background: rgba(255,255,255,0.2); color: white; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.85rem;">
+          <i class="fas fa-unlock"></i> Unlocked
+        </span>
+      {% endif %}
+    </div>
+    
+    <div style="padding: 1.5rem;">
+      {% if not current_user.free_gift_enabled %}
+        <div style="text-align: center; padding: 1rem;">
+          <p style="margin: 0 0 1rem; color: var(--text); font-weight: 500; font-size: 1.1rem;">
+            <i class="fas fa-star" style="color: #ffc107;"></i> Unlock Premium Features Free!
+          </p>
+          <p style="margin: 0 0 1.5rem; color: var(--text-muted); max-width: 400px; margin-left: auto; margin-right: auto;">
+            Get instant access to AI connectors and automated blog posting. Your normal post CRUD operations are already available without premium.
+          </p>
+          <form method="POST" action="{{ url_for('user.enable_free_gift') }}" style="display: inline;">
+            <button type="submit" class="btn btn-primary btn-lg" style="background: linear-gradient(135deg, var(--accent) 0%, #a83b1e 100%); border: none;">
+              <i class="fas fa-gift"></i> Claim Free Premium Access
+            </button>
+          </form>
+        </div>
+      {% else %}
+        <!-- AI CONNECTORS -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border); padding-bottom: 1rem;">
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 0.75rem; color: var(--text);">
+              <i class="fas fa-robot" style="color: var(--accent);"></i> AI Connectors
+            </h3>
+            <a href="{{ url_for('user.manage_connectors') }}" class="btn btn-primary btn-sm">
+              <i class="fas fa-plus"></i> Add Connector
+            </a>
+          </div>
+
+          {% if current_user.ai_connectors.count() > 0 %}
+            <div style="display: grid; gap: 1rem;">
+              {% for connector in current_user.ai_connectors %}
+                <div style="padding: 1rem; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius); display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <p style="margin: 0 0 0.25rem; color: var(--text); font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                      <i class="fas fa-plug" style="color: var(--accent);"></i>
+                      {{ connector.name }}
+                      {% if connector.connector_type %}
+                        <span style="display: inline-block; padding: 0.2rem 0.5rem; background: var(--info-bg); color: var(--info); border-radius: 3px; font-size: 0.75rem; font-weight: 500; margin-left: 0.5rem;">{{ connector.connector_type.upper() }}</span>
+                      {% endif %}
+                    </p>
+                    <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
+                      Status: 
+                      {% if connector.is_active %}
+                        <span style="color: var(--success);">🟢 Active</span>
+                      {% else %}
+                        <span style="color: var(--danger);">🔴 Inactive</span>
+                      {% endif %}
+                      {% if connector.auto_post_enabled %}
+                        | <span style="color: var(--info);"><i class="fas fa-bolt"></i> Auto-posting Enabled</span>
+                      {% endif %}
+                    </p>
+                  </div>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <a href="{{ url_for('user.edit_connector', connector_id=connector.id) }}" class="btn btn-secondary btn-sm" title="Edit">
+                      <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="{{ url_for('user.delete_connector', connector_id=connector.id) }}" class="btn btn-sm" style="background: var(--danger-bg); color: var(--danger); border: none;" title="Delete" onclick="return confirm('Are you sure?');">
+                      <i class="fas fa-trash"></i>
+                    </a>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div style="text-align: center; padding: 1rem; background: var(--surface-alt); border-radius: var(--radius);">
+              <p style="margin: 0; color: var(--text-muted);">
+                <i class="fas fa-robot" style="font-size: 2rem; display: block; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                No AI connectors configured yet
+              </p>
+              <a href="{{ url_for('user.manage_connectors') }}" style="color: var(--accent); text-decoration: none; font-weight: 500; display: inline-block; margin-top: 0.5rem;">
+                Add your first connector →
+              </a>
+            </div>
+          {% endif %}
+        </div>
+
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid var(--border);">
+          <p style="margin: 0 0 0.5rem; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Premium Access Activated</p>
+          <p style="margin: 0; color: var(--text); font-weight: 500;">{{ current_user.free_gift_activated_date.strftime('%d %B %Y at %I:%M %p') }}</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
   <div class="grid grid-layout">
     <!-- POSTS -->
     <div>

@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Edit AI Connector — BlogSphere{% endblock %}
+{% block content %}
+<div class="container page-pad" style="max-width: 600px;">
+  <h1 style="margin-bottom: 1.5rem;">
+    <i class="fas fa-edit" style="color: var(--accent);"></i> Edit Connector
+  </h1>
+
+  <div class="card">
+    <div style="padding: 2rem;">
+      <form method="POST">
+        <div class="form-group">
+          <label class="form-label">Connector Name</label>
+          <input type="text" name="name" class="form-control" placeholder="e.g., My Claude API, OpenAI Prod" value="{{ connector.name }}" required>
+          <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">A friendly name to identify this connector</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Service Type</label>
+          <select name="connector_type" class="form-control" disabled>
+            <option value="{{ connector.connector_type }}" selected>
+              {% if connector.connector_type == 'claude' %}Claude (Anthropic)
+              {% elif connector.connector_type == 'openai' %}OpenAI (GPT-4, GPT-3.5)
+              {% elif connector.connector_type == 'antigravity' %}Antigravity
+              {% elif connector.connector_type == 'cohere' %}Cohere
+              {% elif connector.connector_type == 'gemini' %}Google Gemini
+              {% elif connector.connector_type == 'mistral' %}Mistral AI
+              {% elif connector.connector_type == 'custom' %}Custom API
+              {% else %}{{ connector.connector_type }}{% endif %}
+            </option>
+          </select>
+          <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">Service type cannot be changed after creation</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">API Key</label>
+          <input type="password" name="api_key" class="form-control" placeholder="Leave blank to keep existing key">
+          <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">Enter a new key only if you want to update it</small>
+        </div>
+
+        <div class="form-group" style="padding: 1rem; background: var(--info-bg); border-radius: var(--radius); border: 1px solid var(--border);">
+          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <input type="checkbox" id="auto_post" name="auto_post_enabled" value="on" {% if connector.auto_post_enabled %}checked{% endif %}>
+            <label for="auto_post" style="margin: 0; cursor: pointer;">
+              <strong>Auto-Posting Enabled</strong>
+            </label>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <input type="checkbox" id="is_active" name="is_active" value="on" {% if connector.is_active %}checked{% endif %}>
+            <label for="is_active" style="margin: 0; cursor: pointer;">
+              <strong>Active</strong>
+            </label>
+          </div>
+        </div>
+
+        {% if connector.is_verified %}
+        <div style="padding: 1rem; background: rgba(76, 175, 80, 0.1); border-radius: var(--radius); border: 1px solid #4CAF50; margin-bottom: 1.5rem;">
+          <p style="margin: 0; color: #2e7d32; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-check-circle"></i> <strong>Connection Verified</strong>
+          </p>
+        </div>
+        {% else %}
+        <div style="padding: 1rem; background: rgba(255, 152, 0, 0.1); border-radius: var(--radius); border: 1px solid #FFA500; margin-bottom: 1.5rem;">
+          <p style="margin: 0; color: #e65100; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-exclamation-triangle"></i> <strong>Not Verified</strong>
+          </p>
+        </div>
+        {% endif %}
+
+        {% if connector.last_used %}
+        <div style="padding: 0.75rem; background: var(--bg); border-left: 3px solid var(--accent); margin-bottom: 1.5rem;">
+          <small style="color: var(--text-muted);">
+            <i class="fas fa-clock"></i> Last used: {{ connector.last_used.strftime('%Y-%m-%d %H:%M:%S') }}
+          </small>
+        </div>
+        {% endif %}
+
+        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+          <button type="submit" class="btn btn-primary" style="flex: 1;">
+            <i class="fas fa-save"></i> Save Changes
+          </button>
+          <a href="{{ url_for('user.manage_connectors') }}" class="btn btn-secondary" style="flex: 1;">Cancel</a>
+        </div>
+      </form>
+
+      <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border);">
+        <p style="color: var(--text-muted); margin: 0 0 1rem;">
+          <i class="fas fa-trash-alt" style="color: var(--danger);"></i> <strong>Delete Connector</strong>
+        </p>
+        <form method="POST" action="{{ url_for('user.delete_connector', connector_id=connector.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure? This action cannot be undone.');">
+          <button type="submit" class="btn" style="background: var(--danger); color: white; border: none; padding: 0.5rem 1rem; border-radius: var(--radius); cursor: pointer;">
+            <i class="fas fa-trash"></i> Delete This Connector
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

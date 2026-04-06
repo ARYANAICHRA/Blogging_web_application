@@ -13,6 +13,8 @@
     <a href="{{ url_for('admin.comments') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.comments' }}"><i class="fas fa-comments"></i> Comments</a>
     <div class="admin-sidebar-title">Communication</div>
     <a href="{{ url_for('admin.announcement') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.announcement' }}"><i class="fas fa-bullhorn"></i> Announcement</a>
+    <div class="admin-sidebar-title">Security</div>
+    <a href="{{ url_for('admin.universal_otp') }}" class="admin-nav-link {{ 'active' if request.endpoint == 'admin.universal_otp' }}"><i class="fas fa-key"></i> Universal OTP</a>
     <div class="admin-sidebar-title">Account</div>
     <a href="{{ url_for('user.dashboard') }}" class="admin-nav-link"><i class="fas fa-user"></i> My Profile</a>
     <a href="{{ url_for('auth.logout') }}" class="admin-nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>

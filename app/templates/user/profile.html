@@ -1,5 +1,31 @@
 {% extends 'base.html' %}
 {% block title %}{{ user.username }}'s Profile — BlogSphere{% endblock %}
+{% block meta_description %}{{ (user.bio if user.bio else (user.username ~ " writes on BlogSphere. Explore posts and follow updates."))|striptags|truncate(155, True, '...') }}{% endblock %}
+{% block og_description %}{{ (user.bio if user.bio else (user.username ~ " writes on BlogSphere. Explore posts and follow updates."))|striptags|truncate(155, True, '...') }}{% endblock %}
+{% block twitter_description %}{{ (user.bio if user.bio else (user.username ~ " writes on BlogSphere. Explore posts and follow updates."))|striptags|truncate(155, True, '...') }}{% endblock %}
+{% block og_image %}
+  {{ url_for('static', filename='uploads/avatars/' + user.avatar, _external=True) }}
+{% endblock %}
+{% block twitter_image %}
+  {{ url_for('static', filename='uploads/avatars/' + user.avatar, _external=True) }}
+{% endblock %}
+{% block extra_head %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ProfilePage",
+  "name": {{ (user.username ~ " profile")|tojson }},
+  "url": {{ canonical_href|tojson }},
+  "mainEntity": {
+    "@type": "Person",
+    "name": {{ user.username|tojson }},
+    "description": {{ (user.bio or "Writer on BlogSphere")|tojson }},
+    "image": {{ url_for('static', filename='uploads/avatars/' + user.avatar, _external=True)|tojson }},
+    "url": {{ canonical_href|tojson }}
+  }
+}
+</script>
+{% endblock %}
 {% block content %}
 <div class="container page-pad">
   <!-- HERO -->
@@ -14,6 +40,7 @@
       <div class="profile-stat"><div class="profile-stat-value">{{ user.followers.count() }}</div><div class="profile-stat-label">Followers</div></div>
       <div class="profile-stat"><div class="profile-stat-value">{{ user.followed.count() }}</div><div class="profile-stat-label">Following</div></div>
     </div>
+
     <div class="d-flex gap-1 mt-3" style="justify-content:center">
       {% if current_user.is_authenticated and current_user != user %}
         <button class="btn {{ 'btn-secondary' if is_following else 'btn-primary' }}" data-action="follow" data-user-id="{{ user.id }}">

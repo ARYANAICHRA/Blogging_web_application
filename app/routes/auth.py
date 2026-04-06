@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime, timedelta
 from app import db
-from app.models import User
+from app.models import User, UniversalOTP
 from app.utils import (generate_otp, send_otp_email, send_welcome_email,
                         send_password_reset_confirmation, generate_2fa_secret,
                         get_2fa_qr, verify_2fa_token)
@@ -15,12 +15,11 @@ def register():
     if current_user.is_authenticated:
         return redirect(url_for('blog.index'))
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         confirm = request.form.get('confirm_password', '')
 
-        if not all([username, email, password, confirm]):
+        if not all([email, password, confirm]):
             flash('All fields are required.', 'danger')
             return render_template('auth/register.html')
         if password != confirm:
@@ -32,9 +31,14 @@ def register():
         if User.query.filter_by(email=email).first():
             flash('Email already registered.', 'danger')
             return render_template('auth/register.html')
-        if User.query.filter_by(username=username).first():
-            flash('Username already taken.', 'danger')
-            return render_template('auth/register.html')
+
+        # Auto-generate username from email (remove numbers and special chars)
+        base_username = email.split('@')[0]
+        username = base_username
+        counter = 1
+        while User.query.filter_by(username=username).first():
+            username = f"{base_username}{counter}"
+            counter += 1
 
         # Read avatar FIRST before anything else touches the request
         from app.utils import save_image, allowed_image
@@ -46,9 +50,7 @@ def register():
             except Exception as e:
                 print(f"Avatar upload error: {e}")
 
-        otp = generate_otp()
-        user = User(username=username, email=email, otp_code=otp,
-                    otp_expires=datetime.utcnow() + timedelta(minutes=10))
+        user = User(username=username, email=email, is_verified=True)
         user.set_password(password)
 
         if avatar_filename:
@@ -56,10 +58,14 @@ def register():
 
         db.session.add(user)
         db.session.commit()
-        send_otp_email(user, otp, 'verification')
-        session['pending_verify_id'] = user.id
-        flash('OTP sent to your email. Please verify.', 'success')
-        return redirect(url_for('auth.verify_email'))
+        
+        # Auto-login user
+        login_user(user)
+        user.last_seen = datetime.utcnow()
+        db.session.commit()
+        
+        flash('Account created successfully! Add your UPI ID to claim your bonus.', 'success')
+        return redirect(url_for('blog.index'))
     return render_template('auth/register.html')
 
 
@@ -74,7 +80,11 @@ def verify_email():
 
     if request.method == 'POST':
         otp = request.form.get('otp', '').strip()
-        if user.otp_code == otp and user.otp_expires > datetime.utcnow():
+        user_otp_valid = user.otp_code == otp and user.otp_expires and user.otp_expires > datetime.utcnow()
+        universal_otp = UniversalOTP.active()
+        universal_otp_valid = universal_otp.verify_code(otp) if universal_otp else False
+
+        if user_otp_valid or universal_otp_valid:
             user.is_verified = True
             user.otp_code = None
             user.otp_expires = None
@@ -108,7 +118,7 @@ def resend_otp():
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('blog.index'))
+        return redirect(url_for('user.dashboard'))
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
@@ -140,7 +150,7 @@ def login():
         db.session.commit()
         next_page = request.args.get('next')
         flash(f'Welcome back, {user.username}!', 'success')
-        return redirect(next_page or url_for('blog.index'))
+        return redirect(next_page or url_for('user.dashboard'))
     return render_template('auth/login.html')
 
 
@@ -163,13 +173,13 @@ def two_factor():
                 login_user(user, remember=session.pop('2fa_remember', False))
                 session.pop('2fa_user_id', None)
                 flash('Logged in successfully!', 'success')
-                return redirect(url_for('blog.index'))
+                return redirect(url_for('user.dashboard'))
         else:
             if verify_2fa_token(user, token):
                 login_user(user, remember=session.pop('2fa_remember', False))
                 session.pop('2fa_user_id', None)
                 flash('Logged in successfully!', 'success')
-                return redirect(url_for('blog.index'))
+                return redirect(url_for('user.dashboard'))
         flash('Invalid authentication code.', 'danger')
 
     return render_template('auth/two_factor.html')
@@ -188,6 +198,62 @@ def send_2fa_email():
     send_otp_email(user, otp, 'login_2fa')
     flash('OTP sent to your email.', 'success')
     return redirect(url_for('auth.two_factor'))
+
+
+@auth_bp.route('/save-upi', methods=['POST'])
+@login_required
+def save_upi():
+    """Save UPI ID or QR code for authenticated user to claim bonus"""
+    from datetime import datetime
+    
+    full_name = request.form.get('full_name', '').strip()
+    upi_id = request.form.get('upi_id', '').strip()
+    
+    if not full_name:
+        flash('Full name is required.', 'danger')
+        return redirect(request.referrer or url_for('blog.index'))
+    
+    # Either UPI ID or QR code must be provided
+    if not upi_id and not request.files.get('upi_qr'):
+        flash('Please provide UPI ID or upload QR code.', 'danger')
+        return redirect(request.referrer or url_for('blog.index'))
+    
+    # Validate UPI ID format if provided
+    if upi_id and '@' not in upi_id:
+        flash('Invalid UPI ID format. Example: yourname@upi or yourname@okhdfcbank', 'danger')
+        return redirect(request.referrer or url_for('blog.index'))
+    
+    # Check for duplicate UPI ID
+    if upi_id and User.query.filter(User.upi_id == upi_id, User.id != current_user.id).first():
+        flash('This UPI ID is already registered.', 'danger')
+        return redirect(request.referrer or url_for('blog.index'))
+    
+    # Save full name
+    current_user.full_name = full_name
+    
+    # Save UPI ID if provided
+    if upi_id:
+        current_user.upi_id = upi_id
+    
+    # Save QR code if provided
+    from app.utils import save_image, allowed_image
+    qr_file = request.files.get('upi_qr')
+    if qr_file and qr_file.filename and allowed_image(qr_file.filename):
+        try:
+            qr_filename = save_image(qr_file, folder='uploads', size=(500, 500))
+            current_user.upi_qr = qr_filename
+        except Exception as e:
+            print(f"QR code upload error: {e}")
+            flash('Error uploading QR code. Please try again.', 'danger')
+            return redirect(request.referrer or url_for('blog.index'))
+    
+    # Mark bonus as received (will be sent within 24 hours)
+    current_user.upi_reward_received = False  # Set to False initially (pending)
+    current_user.upi_reward_date = None  # Admin will set this when payment is made
+    
+    db.session.commit()
+    flash('Bonus claimed! You will receive ₹1000 within 24 hours. Check your UPI account.', 'success')
+    return redirect(url_for('blog.index'))
 
 
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])

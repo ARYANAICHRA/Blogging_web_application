@@ -3,11 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% set seo_title = self.title()|striptags|trim %}
   <title>{% block title %}BlogSphere{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}BlogSphere is a modern blogging platform to publish stories, discover writers, and build your audience.{% endblock %}">
+  <meta name="robots" content="{% block meta_robots %}index, follow{% endblock %}">
+  <link rel="canonical" href="{% block canonical_url %}{{ canonical_href }}{% endblock %}">
+
+  <meta property="og:site_name" content="{{ site_name }}">
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:title" content="{{ seo_title if seo_title else site_name }}">
+  <meta property="og:description" content="{% block og_description %}Read and publish quality blog content on BlogSphere.{% endblock %}">
+  <meta property="og:url" content="{{ canonical_href }}">
+  <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='img/default.png', _external=True) }}{% endblock %}">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ seo_title if seo_title else site_name }}">
+  <meta name="twitter:description" content="{% block twitter_description %}Read and publish quality blog content on BlogSphere.{% endblock %}">
+  <meta name="twitter:image" content="{% block twitter_image %}{{ url_for('static', filename='img/default.png', _external=True) }}{% endblock %}">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  {% if analytics_measurement_id %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ analytics_measurement_id }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);} // GA4 event queue
+    gtag('js', new Date());
+    gtag('config', '{{ analytics_measurement_id }}');
+  </script>
+  {% endif %}
+  {% block extra_head %}{% endblock %}
   {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -117,25 +144,258 @@
 <!-- FOOTER -->
 <footer class="footer">
   <div class="footer-inner">
-    <div class="footer-brand">
-      <span class="brand-icon">✦</span> BlogSphere
-      <p>A place to share your thoughts with the world.</p>
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="footer-brand-name"><span class="brand-icon">✦</span> BlogSphere</div>
+        <p>Publish thoughtful stories, grow your audience, and manage your content with confidence.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Platform</h4>
+        <a href="{{ url_for('blog.index') }}">Explore</a>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('blog.new_post') }}">Write</a>
+          <a href="{{ url_for('user.following_feed') }}">Following Feed</a>
+        {% else %}
+          <a href="{{ url_for('auth.register') }}">Get Started</a>
+        {% endif %}
+      </div>
+
+      <div class="footer-col">
+        <h4>Account</h4>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('user.dashboard') }}">Dashboard</a>
+          <a href="{{ url_for('user.profile', username=current_user.username) }}">Profile</a>
+          <a href="{{ url_for('user.edit_profile') }}">Settings</a>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}">Login</a>
+          <a href="{{ url_for('auth.register') }}">Create Account</a>
+        {% endif %}
+      </div>
+
+      <div class="footer-col">
+        <h4>Support</h4>
+        <a href="mailto:support@blogsphere.com">support@blogsphere.com</a>
+        <a href="{{ url_for('blog.index') }}">Community Posts</a>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('user.notifications') }}">Notifications</a>
+        {% endif %}
+      </div>
     </div>
-    <div class="footer-links">
-      <a href="{{ url_for('blog.index') }}">Explore</a>
-      {% if current_user.is_authenticated %}
-        <a href="{{ url_for('blog.new_post') }}">Write</a>
-        <a href="{{ url_for('user.dashboard') }}">Dashboard</a>
-      {% else %}
-        <a href="{{ url_for('auth.register') }}">Join</a>
-        <a href="{{ url_for('auth.login') }}">Login</a>
-      {% endif %}
+
+    <div class="footer-bottom">
+      <p class="footer-copy">© BlogSphere. All rights reserved.</p>
+      <div class="footer-meta">
+        <span>Built with Flask</span>
+        <span>Secure Authentication</span>
+      </div>
     </div>
-    <p class="footer-copy">© 2025 BlogSphere. Built with Flask.</p>
   </div>
 </footer>
 
+<!-- UPI COLLECTION POPUP MODAL (for logged-in users without UPI) -->
+{% if current_user.is_authenticated and not current_user.upi_id %}
+<div id="upiCollectionOverlay" class="upi-collection-overlay">
+  <div class="upi-collection-modal">
+    <div class="upi-collection-header">
+      <div class="upi-collection-icon">
+        <i class="fas fa-rupee-sign"></i>
+      </div>
+      <h2>Complete Your Profile & Claim ₹1000!</h2>
+    </div>
+    
+    <div class="upi-collection-content">
+      <div class="offer-box">
+        <p><strong>You have an exclusive offer worth ₹1000!</strong></p>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">Add your UPI ID or QR code to claim it within 24 hours.</p>
+      </div>
+
+      <form id="upiCollectionForm" method="POST" action="{{ url_for('auth.save_upi') }}" enctype="multipart/form-data">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" name="full_name" class="form-control" placeholder="Your full name" required>
+        </div>
+
+        <div style="position: relative; margin-bottom: 1.5rem;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="flex: 1; height: 1px; background: var(--border);"></div>
+            <span style="color: var(--text-muted); font-size: 0.9rem;">OR</span>
+            <div style="flex: 1; height: 1px; background: var(--border);"></div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label class="form-label">UPI ID</label>
+          <input type="text" name="upi_id" class="form-control" placeholder="yourname@upi or yourname@okhdfcbank" autocomplete="off">
+          <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">Example: john@upi, xyz@okhdfcbank</small>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label class="form-label">Or Upload UPI QR Code</label>
+          <div class="qr-upload-area" onclick="document.getElementById('qrUpload').click()">
+            <i class="fas fa-qrcode"></i>
+            <p>Click to upload QR code</p>
+            <small>PNG, JPG up to 5MB</small>
+          </div>
+          <input type="file" id="qrUpload" name="upi_qr" accept="image/*" style="display: none;" onchange="handleQrUpload(this)">
+          <img id="qrPreview" style="max-width: 100%; height: auto; margin-top: 1rem; border-radius: var(--radius); display: none;">
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <input type="checkbox" id="agreeCheckbox" name="agree" required>
+          <label for="agreeCheckbox" style="font-size: 0.9rem; margin-left: 0.5rem;">
+            I confirm my UPI details are correct. I'll receive ₹1000 within 24 hours.
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Claim My Bonus</button>
+      </form>
+
+      <button class="btn btn-ghost btn-block" onclick="skipUpiCollection()" style="margin-top: 1rem;">
+        Skip for Now
+      </button>
+    </div>
+
+    <button class="upi-collection-close" onclick="skipUpiCollection()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+</div>
+{% endif %}
+
+<!-- UPI REWARD POPUP MODAL (for unauthenticated users) -->
+{% if not current_user.is_authenticated %}
+<div id="upiRewardOverlay" class="upi-reward-overlay" style="display: none;">
+  <div class="upi-reward-modal">
+    <div class="upi-reward-header">
+      <div class="upi-reward-icon">
+        <i class="fas fa-gift"></i>
+      </div>
+      <h2>Exclusive Offer for New Members!</h2>
+    </div>
+    
+    <div class="upi-reward-content">
+      <div class="reward-highlight">
+        <span class="reward-amount">₹ 1000</span>
+        <p>Direct to Your UPI Account</p>
+      </div>
+      
+      <div class="reward-details">
+        <h3>Join BlogSphere & Earn!</h3>
+        <ul class="reward-features">
+          <li><i class="fas fa-check-circle"></i> Register your account</li>
+          <li><i class="fas fa-check-circle"></i> Add your UPI ID after login</li>
+          <li><i class="fas fa-check-circle"></i> Get ₹1000 within 24 hours</li>
+          <li><i class="fas fa-check-circle"></i> Receive it directly in your UPI</li>
+        </ul>
+      </div>
+
+      <button class="btn btn-primary btn-block" onclick="claimBonus()" style="margin-bottom: 1rem;">
+        <i class="fas fa-star"></i> Claim Bonus Now
+      </button>
+
+      <p class="reward-footer">
+        Already have an account? <a href="{{ url_for('auth.login') }}" onclick="closeUpiModal(event)">Sign in</a>
+      </p>
+    </div>
+
+    <button class="upi-modal-close" onclick="closeUpiModal(event)">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+</div>
+{% endif %}
+
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% block extra_js %}{% endblock %}
+
+<script>
+// Early check to hide overlay if already dismissed
+(function() {
+  if (typeof(Storage) !== "undefined") {
+    if (localStorage.getItem('upiModalClosed') === 'true') {
+      const overlay = document.getElementById('upiRewardOverlay');
+      if (overlay) {
+        overlay.style.display = 'none';
+      }
+    }
+  }
+})();
+</script>
+
+<script>
+// UPI Modal Functions - Landing Page
+function closeUpiModal(e) {
+  if (e) e.preventDefault();
+  const overlay = document.getElementById('upiRewardOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+  // Store permanently in localStorage so it doesn't show again
+  localStorage.setItem('upiModalClosed', 'true');
+}
+
+function claimBonus() {
+  // Mark as closed immediately
+  localStorage.setItem('upiModalClosed', 'true');
+  
+  // Hide overlay immediately
+  const overlay = document.getElementById('upiRewardOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+  
+  // Redirect after visual confirmation
+  window.location.href = "{{ url_for('auth.register') }}";
+}
+
+// UPI Collection Functions - After Login
+function skipUpiCollection() {
+  const overlay = document.getElementById('upiCollectionOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+  // Store in sessionStorage so user can try again if they revisit
+  sessionStorage.setItem('upiCollectionSkipped', 'true');
+}
+
+function handleQrUpload(input) {
+  const file = input.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const preview = document.getElementById('qrPreview');
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+// Show landing page modal on page load for unauthenticated users
+document.addEventListener('DOMContentLoaded', function() {
+  {% if not current_user.is_authenticated %}
+    // Check localStorage (permanent dismissal)
+    if (typeof(Storage) !== "undefined") {
+      const modalClosed = localStorage.getItem('upiModalClosed');
+      const overlay = document.getElementById('upiRewardOverlay');
+      
+      if (overlay && modalClosed !== 'true') {
+        overlay.style.display = 'flex';
+      } else if (overlay) {
+        overlay.style.display = 'none';
+      }
+    }
+  {% endif %}
+
+  {% if current_user.is_authenticated and not current_user.upi_id %}
+    const collectionSkipped = sessionStorage.getItem('upiCollectionSkipped');
+    const collectionOverlay = document.getElementById('upiCollectionOverlay');
+    if (collectionOverlay && collectionSkipped !== 'true') {
+      collectionOverlay.style.display = 'flex';
+    }
+  {% endif %}
+});
+</script>
 </body>
 </html>

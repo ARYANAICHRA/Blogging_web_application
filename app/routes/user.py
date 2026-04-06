@@ -178,3 +178,120 @@ def bookmarks():
 def following_feed():
     posts = current_user.get_feed_posts().all()
     return render_template('user/following_feed.html', posts=posts)
+
+
+@user_bp.route('/enable-free-gift', methods=['POST'])
+@login_required
+def enable_free_gift():
+    """Enable free premium access for user"""
+    if current_user.free_gift_enabled:
+        flash('You already have premium access enabled!', 'info')
+        return redirect(url_for('user.dashboard'))
+    
+    current_user.free_gift_enabled = True
+    current_user.free_gift_activated_date = datetime.utcnow()
+    db.session.commit()
+    
+    flash('🎉 Premium access unlocked! You can now add AI connectors and enable automated blog posting.', 'success')
+    return redirect(url_for('user.dashboard'))
+
+
+@user_bp.route('/connectors')
+@login_required
+def manage_connectors():
+    """Manage AI connectors"""
+    if not current_user.free_gift_enabled:
+        flash('You need to unlock premium access first!', 'warning')
+        return redirect(url_for('user.dashboard'))
+    
+    connectors = current_user.ai_connectors.all()
+    return render_template('user/connectors.html', connectors=connectors)
+
+
+@user_bp.route('/connector/add', methods=['GET', 'POST'])
+@login_required
+def add_connector():
+    """Add a new AI connector"""
+    if not current_user.free_gift_enabled:
+        flash('You need to unlock premium access first!', 'warning')
+        return redirect(url_for('user.dashboard'))
+    
+    if request.method == 'POST':
+        from app.models import AIConnector
+        
+        name = request.form.get('name', '').strip()
+        connector_type = request.form.get('connector_type', '').strip()
+        api_key = request.form.get('api_key', '').strip()
+        auto_post = request.form.get('auto_post_enabled') == 'on'
+        
+        if not all([name, connector_type, api_key]):
+            flash('All fields are required.', 'danger')
+            return render_template('user/add_connector.html')
+        
+        # Check for duplicate connector name
+        if AIConnector.query.filter_by(user_id=current_user.id, name=name).first():
+            flash('You already have a connector with this name.', 'danger')
+            return render_template('user/add_connector.html')
+        
+        connector = AIConnector(
+            user_id=current_user.id,
+            name=name,
+            connector_type=connector_type,
+            api_key=api_key,  # In production, encrypt this
+            auto_post_enabled=auto_post,
+            is_active=True
+        )
+        db.session.add(connector)
+        db.session.commit()
+        
+        flash(f'Connector "{name}" added successfully!', 'success')
+        return redirect(url_for('user.manage_connectors'))
+    
+    return render_template('user/add_connector.html')
+
+
+@user_bp.route('/connector/<int:connector_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_connector(connector_id):
+    """Edit an AI connector"""
+    from app.models import AIConnector
+    
+    connector = AIConnector.query.get_or_404(connector_id)
+    
+    if connector.user_id != current_user.id:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('user.manage_connectors'))
+    
+    if request.method == 'POST':
+        connector.name = request.form.get('name', '').strip() or connector.name
+        api_key = request.form.get('api_key', '').strip()
+        if api_key:
+            connector.api_key = api_key
+        connector.auto_post_enabled = request.form.get('auto_post_enabled') == 'on'
+        connector.is_active = request.form.get('is_active') == 'on'
+        
+        db.session.commit()
+        flash('Connector updated!', 'success')
+        return redirect(url_for('user.manage_connectors'))
+    
+    return render_template('user/edit_connector.html', connector=connector)
+
+
+@user_bp.route('/connector/<int:connector_id>/delete', methods=['POST'])
+@login_required
+def delete_connector(connector_id):
+    """Delete an AI connector"""
+    from app.models import AIConnector
+    
+    connector = AIConnector.query.get_or_404(connector_id)
+    
+    if connector.user_id != current_user.id:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('user.manage_connectors'))
+    
+    name = connector.name
+    db.session.delete(connector)
+    db.session.commit()
+    
+    flash(f'Connector "{name}" deleted.', 'success')
+    return redirect(url_for('user.manage_connectors'))

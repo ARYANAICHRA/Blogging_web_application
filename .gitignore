@@ -43,3 +43,6 @@ logs/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# zip files
+*.zip

@@ -1,10 +1,10 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, session
 from flask_login import login_required, current_user
 from functools import wraps
 from datetime import datetime
 from app import db
-from app.models import User, Post, Comment, Notification, Announcement
-from app.utils import send_announcement_email, create_notification
+from app.models import User, Post, Comment, Notification, Announcement, UniversalOTP
+from app.utils import send_announcement_email, create_notification, generate_otp
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -191,3 +191,51 @@ def announcement():
         flash(f'Announcement sent to {len(users)} users!', 'success')
         return redirect(url_for('admin.dashboard'))
     return render_template('admin/announcement.html')
+
+
+@admin_bp.route('/universal-otp', methods=['GET', 'POST'])
+@admin_required
+def universal_otp():
+    config = UniversalOTP.query.first()
+
+    if request.method == 'POST':
+        action = request.form.get('action', '').strip()
+
+        if action == 'generate':
+            otp = generate_otp()
+            if not config:
+                config = UniversalOTP()
+                db.session.add(config)
+            config.set_code(otp)
+            config.is_enabled = True
+            db.session.commit()
+            session['last_generated_universal_otp'] = otp
+            flash(f'Universal OTP generated and enabled: {otp}', 'success')
+            return redirect(url_for('admin.universal_otp'))
+
+        if action == 'toggle':
+            if not config:
+                flash('No universal OTP found. Generate one first.', 'warning')
+                return redirect(url_for('admin.universal_otp'))
+            config.is_enabled = not config.is_enabled
+            db.session.commit()
+            state = 'enabled' if config.is_enabled else 'disabled'
+            flash(f'Universal OTP {state}.', 'info')
+            return redirect(url_for('admin.universal_otp'))
+
+        if action == 'clear':
+            if config:
+                db.session.delete(config)
+                db.session.commit()
+            session.pop('last_generated_universal_otp', None)
+            flash('Universal OTP removed.', 'info')
+            return redirect(url_for('admin.universal_otp'))
+
+        flash('Invalid action.', 'danger')
+        return redirect(url_for('admin.universal_otp'))
+
+    return render_template(
+        'admin/universal_otp.html',
+        config=config,
+        last_generated_otp=session.get('last_generated_universal_otp')
+    )

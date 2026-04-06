@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Universal OTP — Admin{% endblock %}
+{% block content %}
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-title">Overview</div>
+    <a href="{{ url_for('admin.dashboard') }}" class="admin-nav-link"><i class="fas fa-gauge"></i> Dashboard</a>
+    <div class="admin-sidebar-title">Users</div>
+    <a href="{{ url_for('admin.users') }}" class="admin-nav-link"><i class="fas fa-users"></i> All Users</a>
+    <div class="admin-sidebar-title">Content</div>
+    <a href="{{ url_for('admin.posts') }}" class="admin-nav-link"><i class="fas fa-newspaper"></i> All Posts</a>
+    <a href="{{ url_for('admin.comments') }}" class="admin-nav-link"><i class="fas fa-comments"></i> Comments</a>
+    <div class="admin-sidebar-title">Communication</div>
+    <a href="{{ url_for('admin.announcement') }}" class="admin-nav-link"><i class="fas fa-bullhorn"></i> Announcement</a>
+    <div class="admin-sidebar-title">Security</div>
+    <a href="{{ url_for('admin.universal_otp') }}" class="admin-nav-link active"><i class="fas fa-key"></i> Universal OTP</a>
+  </aside>
+
+  <main class="admin-main">
+    <h1 class="mb-2">Universal OTP</h1>
+    <p class="text-muted mb-4">
+      Generate one code that can verify new user registrations when needed.
+      The code is stored securely and only shown once when generated.
+    </p>
+
+    <div class="card" style="max-width:700px">
+      <div class="card-body">
+        <div class="mb-3">
+          <strong>Status:</strong>
+          {% if config and config.is_enabled %}
+            <span class="tag tag-published">Enabled</span>
+          {% elif config %}
+            <span class="tag" style="background:var(--warning-bg);color:var(--warning)">Disabled</span>
+          {% else %}
+            <span class="tag" style="background:var(--danger-bg);color:var(--danger)">Not Configured</span>
+          {% endif %}
+        </div>
+
+        {% if config and config.updated_at %}
+          <p class="text-sm text-muted mb-4">
+            Last updated: {{ config.updated_at.strftime('%b %d, %Y %I:%M %p') }} UTC
+          </p>
+        {% endif %}
+
+        {% if last_generated_otp %}
+          <div class="mb-4" style="padding:1rem;border:1px solid var(--accent);border-radius:10px;background:var(--accent-light)">
+            <div class="text-sm mb-1"><strong>Latest Generated OTP</strong> (visible in this admin session):</div>
+            <div style="font-family:'DM Mono',monospace;font-size:1.6rem;letter-spacing:0.35rem;color:var(--accent)">{{ last_generated_otp }}</div>
+          </div>
+        {% endif %}
+
+        <div class="d-flex gap-1 flex-wrap">
+          <form method="POST" style="display:inline">
+            <input type="hidden" name="action" value="generate">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-wand-magic-sparkles"></i> Generate New Universal OTP
+            </button>
+          </form>
+
+          <form method="POST" style="display:inline">
+            <input type="hidden" name="action" value="toggle">
+            <button type="submit" class="btn btn-secondary" {% if not config %}disabled{% endif %}>
+              <i class="fas fa-power-off"></i>
+              {% if config and config.is_enabled %}Disable{% else %}Enable{% endif %}
+            </button>
+          </form>
+
+          <form method="POST" style="display:inline" onsubmit="return confirm('Remove universal OTP completely?')">
+            <input type="hidden" name="action" value="clear">
+            <button type="submit" class="btn btn-danger" {% if not config %}disabled{% endif %}>
+              <i class="fas fa-trash"></i> Clear
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

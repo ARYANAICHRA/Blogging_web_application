@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Add AI Connector — BlogSphere{% endblock %}
+{% block content %}
+<div class="container page-pad" style="max-width: 600px;">
+  <h1 style="margin-bottom: 1.5rem;">
+    <i class="fas fa-plus-circle" style="color: var(--accent);"></i> Add AI Connector
+  </h1>
+
+  <div class="card">
+    <div style="padding: 2rem;">
+      <form method="POST">
+        <div class="form-group">
+          <label class="form-label">Connector Name</label>
+          <input type="text" name="name" class="form-control" placeholder="e.g., My Claude API, OpenAI Prod" required>
+          <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">A friendly name to identify this connector</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Service Type</label>
+          <select name="connector_type" class="form-control" required>
+            <option value="">-- Select Service --</option>
+            <option value="claude">Claude (Anthropic)</option>
+            <option value="openai">OpenAI (GPT-4, GPT-3.5)</option>
+            <option value="antigravity">Antigravity</option>
+            <option value="cohere">Cohere</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="mistral">Mistral AI</option>
+            <option value="custom">Custom API</option>
+          </select>
+          <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">Choose the AI service you want to integrate</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">API Key</label>
+          <input type="password" name="api_key" class="form-control" placeholder="Paste your API key here" required>
+          <small style="color: var(--warning); display: block; margin-top: 0.5rem;">
+            <i class="fas fa-lock"></i> Your API key is encrypted and never shared. You can regenerate/revoke it anytime on the service provider's dashboard.
+          </small>
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem;">
+          <input type="checkbox" id="auto_post" name="auto_post_enabled" value="on">
+          <label for="auto_post" style="margin: 0; cursor: pointer;">
+            <strong>Enable Auto-Posting</strong>
+            <small style="display: block; color: var(--text-muted); margin-top: 0.25rem;">Allow this connector to automatically create and publish blog posts</small>
+          </label>
+        </div>
+
+        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+          <button type="submit" class="btn btn-primary" style="flex: 1;">
+            <i class="fas fa-plus"></i> Add Connector
+          </button>
+          <a href="{{ url_for('user.manage_connectors') }}" class="btn btn-secondary" style="flex: 1;">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 2rem; background: var(--info-bg); border-color: var(--info);">
+    <div style="padding: 1.5rem;">
+      <h3 style="margin: 0 0 1rem; color: var(--info); display: flex; align-items: center; gap: 0.75rem;">
+        <i class="fas fa-lightbulb"></i> Need Help?
+      </h3>
+      <p style="margin: 0 0 0.75rem; color: var(--info);">
+        <strong>How to get your API key:</strong>
+      </p>
+      <ul style="margin: 0; padding-left: 1.5rem; color: var(--info);">
+        <li><strong>Claude:</strong> Get your key at <code style="background: rgba(21, 101, 192, 0.1); padding: 2px 6px; border-radius: 3px;">console.anthropic.com</code></li>
+        <li><strong>OpenAI:</strong> Get your key at <code style="background: rgba(21, 101, 192, 0.1); padding: 2px 6px; border-radius: 3px;">platform.openai.com</code></li>
+        <li><strong>Others:</strong> Check each service's API documentation</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

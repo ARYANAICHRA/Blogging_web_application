@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}AI Connectors — BlogSphere{% endblock %}
+{% block content %}
+<div class="container page-pad">
+  <div class="d-flex justify-between align-center mb-4">
+    <h1><i class="fas fa-robot"></i> AI Connectors</h1>
+    <a href="{{ url_for('user.add_connector') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Add Connector</a>
+  </div>
+
+  <div class="mb-4">
+    <div class="card">
+      <div class="card-header">
+        <strong>Available AI Services</strong>
+      </div>
+      <div style="padding: 1.5rem; background: var(--surface-alt);">
+        <p style="margin: 0; color: var(--text-muted); font-size: 0.95rem;">
+          <i style="color: var(--info);" class="fas fa-info-circle"></i>
+          Connect your favorite AI service to enable automated blog posting workflows.
+          Supported services: Claude, OpenAI, Antigravity, and more.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {% if connectors %}
+    <div style="display: grid; gap: 1rem;">
+      {% for connector in connectors %}
+        <div class="card">
+          <div style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div style="flex: 1;">
+              <h3 style="margin: 0 0 0.5rem; display: flex; align-items: center; gap: 0.75rem; color: var(--text);">
+                <i class="fas fa-plug" style="color: var(--accent);"></i>
+                {{ connector.name }}
+                <span style="display: inline-block; padding: 0.25rem 0.75rem; background: var(--info-bg); color: var(--info); border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-left: 0.5rem;">{{ connector.connector_type.upper() }}</span>
+              </h3>
+              <p style="margin: 0.5rem 0 0; color: var(--text-muted); font-size: 0.9rem;">
+                {{ connector.created_at.strftime('%d %b %Y at %I:%M %p') }}
+              </p>
+              <div style="margin-top: 0.75rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                {% if connector.is_active %}
+                  <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; background: var(--success-bg); color: var(--success); border-radius: 4px; font-size: 0.85rem; font-weight: 500;">
+                    <i class="fas fa-check-circle"></i> Active
+                  </span>
+                {% else %}
+                  <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; background: var(--danger-bg); color: var(--danger); border-radius: 4px; font-size: 0.85rem; font-weight: 500;">
+                    <i class="fas fa-times-circle"></i> Inactive
+                  </span>
+                {% endif %}
+                
+                {% if connector.is_verified %}
+                  <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; background: var(--success-bg); color: var(--success); border-radius: 4px; font-size: 0.85rem; font-weight: 500;">
+                    <i class="fas fa-shield-alt"></i> Verified
+                  </span>
+                {% else %}
+                  <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; background: var(--warning-bg); color: var(--warning); border-radius: 4px; font-size: 0.85rem; font-weight: 500;">
+                    <i class="fas fa-clock"></i> Pending Verification
+                  </span>
+                {% endif %}
+
+                {% if connector.auto_post_enabled %}
+                  <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; background: rgba(42, 111, 200, 0.1); color: var(--accent-2); border-radius: 4px; font-size: 0.85rem; font-weight: 500;">
+                    <i class="fas fa-bolt"></i> Auto-posting
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-left: 1rem;">
+              <a href="{{ url_for('user.edit_connector', connector_id=connector.id) }}" class="btn btn-secondary btn-sm" title="Edit">
+                <i class="fas fa-edit"></i>
+              </a>
+              <form method="POST" action="{{ url_for('user.delete_connector', connector_id=connector.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this connector?');">
+                <button type="submit" class="btn btn-sm" style="background: var(--danger-bg); color: var(--danger); border: none; cursor: pointer;" title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card">
+      <div style="padding: 3rem; text-align: center;">
+        <p style="margin: 0 0 1rem; font-size: 2rem; opacity: 0.5;">
+          <i class="fas fa-robot"></i>
+        </p>
+        <p style="margin: 0 0 0.5rem; color: var(--text); font-size: 1.1rem; font-weight: 500;">No Connectors Yet</p>
+        <p style="margin: 0 0 1rem; color: var(--text-muted);">Start by adding your first AI connector</p>
+        <a href="{{ url_for('user.add_connector') }}" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Add Your First Connector
+        </a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

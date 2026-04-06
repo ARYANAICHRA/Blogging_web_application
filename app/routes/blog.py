@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, abort
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, abort, Response
 from flask_login import login_required, current_user
 from datetime import datetime
 import markdown
@@ -27,6 +27,50 @@ def index():
     posts = query.order_by(Post.created_at.desc()).paginate(page=page, per_page=10)
     popular = Post.query.filter_by(status='published').order_by(Post.views.desc()).limit(5).all()
     return render_template('blog/index.html', posts=posts, popular=popular, q=q)
+
+
+@blog_bp.route('/robots.txt')
+def robots_txt():
+    body = (
+        'User-agent: *\n'
+        'Allow: /\n'
+        'Disallow: /admin/\n'
+        'Disallow: /auth/\n'
+        f'Sitemap: {url_for("blog.sitemap_xml", _external=True)}\n'
+    )
+    return Response(body, mimetype='text/plain')
+
+
+@blog_bp.route('/sitemap.xml')
+def sitemap_xml():
+    posts = Post.query.filter_by(status='published').order_by(Post.updated_at.desc()).all()
+    urls = [
+        {
+            'loc': url_for('blog.index', _external=True),
+            'lastmod': datetime.utcnow().date().isoformat(),
+            'changefreq': 'daily',
+            'priority': '1.0',
+        }
+    ]
+    for post in posts:
+        lastmod = (post.updated_at or post.published_at or post.created_at or datetime.utcnow()).date().isoformat()
+        urls.append({
+            'loc': url_for('blog.view_post', slug=post.slug, _external=True),
+            'lastmod': lastmod,
+            'changefreq': 'weekly',
+            'priority': '0.8',
+        })
+
+    xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for entry in urls:
+        xml.append('<url>')
+        xml.append(f"<loc>{entry['loc']}</loc>")
+        xml.append(f"<lastmod>{entry['lastmod']}</lastmod>")
+        xml.append(f"<changefreq>{entry['changefreq']}</changefreq>")
+        xml.append(f"<priority>{entry['priority']}</priority>")
+        xml.append('</url>')
+    xml.append('</urlset>')
+    return Response('\n'.join(xml), mimetype='application/xml')
 
 
 @blog_bp.route('/post/<slug>')

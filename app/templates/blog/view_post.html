@@ -1,5 +1,45 @@
 {% extends 'base.html' %}
 {% block title %}{{ post.title }} — BlogSphere{% endblock %}
+{% block meta_description %}{{ (post.excerpt or post.content[:155])|striptags|truncate(155, True, '...') }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_description %}{{ (post.excerpt or post.content[:155])|striptags|truncate(155, True, '...') }}{% endblock %}
+{% block twitter_description %}{{ (post.excerpt or post.content[:155])|striptags|truncate(155, True, '...') }}{% endblock %}
+{% block og_image %}
+  {% if post.cover_image %}
+    {{ url_for('static', filename='uploads/posts/' + post.cover_image, _external=True) }}
+  {% else %}
+    {{ url_for('static', filename='img/default.png', _external=True) }}
+  {% endif %}
+{% endblock %}
+{% block twitter_image %}
+  {% if post.cover_image %}
+    {{ url_for('static', filename='uploads/posts/' + post.cover_image, _external=True) }}
+  {% else %}
+    {{ url_for('static', filename='img/default.png', _external=True) }}
+  {% endif %}
+{% endblock %}
+{% block extra_head %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": {{ post.title|tojson }},
+  "author": {
+    "@type": "Person",
+    "name": {{ post.author.username|tojson }}
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "BlogSphere"
+  },
+  "datePublished": {{ (post.published_at.isoformat() if post.published_at else post.created_at.isoformat())|tojson }},
+  "dateModified": {{ post.updated_at.isoformat()|tojson }},
+  "mainEntityOfPage": {{ request.url|tojson }},
+  "description": {{ (post.excerpt or post.content[:155])|striptags|truncate(155, True, '...')|tojson }},
+  "image": {{ (url_for('static', filename='uploads/posts/' + post.cover_image, _external=True) if post.cover_image else url_for('static', filename='img/default.png', _external=True))|tojson }}
+}
+</script>
+{% endblock %}
 {% block content %}
 <div class="container-md page-pad">
 

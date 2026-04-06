@@ -40,12 +40,20 @@ class User(UserMixin, db.Model):
     two_factor_secret = db.Column(db.String(32))
     otp_code = db.Column(db.String(6))
     otp_expires = db.Column(db.DateTime)
+    full_name = db.Column(db.String(120))
+    upi_id = db.Column(db.String(100), unique=True, nullable=True)
+    upi_qr = db.Column(db.String(200), nullable=True)
+    upi_reward_received = db.Column(db.Boolean, default=False)
+    upi_reward_date = db.Column(db.DateTime)
+    free_gift_enabled = db.Column(db.Boolean, default=False)
+    free_gift_activated_date = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
 
     posts = db.relationship('Post', backref='author', lazy='dynamic', cascade='all, delete-orphan')
     comments = db.relationship('Comment', backref='author', lazy='dynamic', cascade='all, delete-orphan')
     notifications = db.relationship('Notification', backref='user', lazy='dynamic', cascade='all, delete-orphan')
+    ai_connectors = db.relationship('AIConnector', backref='user', lazy='dynamic', cascade='all, delete-orphan')
 
     bookmarked_posts = db.relationship('Post', secondary=bookmarks, backref='bookmarked_by', lazy='dynamic')
     liked_posts = db.relationship('Post', secondary=likes, backref='liked_by', lazy='dynamic')
@@ -175,3 +183,40 @@ class Announcement(db.Model):
     content = db.Column(db.Text)
     sent_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class UniversalOTP(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    otp_hash = db.Column(db.String(256), nullable=False)
+    is_enabled = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def set_code(self, code):
+        self.otp_hash = generate_password_hash(code)
+
+    def verify_code(self, code):
+        return bool(code) and check_password_hash(self.otp_hash, code)
+
+    @classmethod
+    def active(cls):
+        return cls.query.filter_by(is_enabled=True).first()
+
+
+class AIConnector(db.Model):
+    """AI connector for automated blog posting and CRUD operations"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)  # e.g., "Claude API", "OpenAI", etc.
+    connector_type = db.Column(db.String(50), nullable=False)  # claude, openai, antigravity, etc.
+    api_key = db.Column(db.String(500), nullable=False)  # Encrypted API key
+    is_active = db.Column(db.Boolean, default=True)
+    is_verified = db.Column(db.Boolean, default=False)
+    auto_post_enabled = db.Column(db.Boolean, default=False)  # Enable auto-posting
+    config = db.Column(db.JSON, nullable=True)  # Store connector-specific config
+    last_used = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<AIConnector {self.name}>'
