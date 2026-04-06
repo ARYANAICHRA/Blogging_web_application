@@ -1,3 +1,0 @@
-[deploy]
-releaseCommand = "flask --app run.py db upgrade"
-startCommand = "gunicorn run:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120"

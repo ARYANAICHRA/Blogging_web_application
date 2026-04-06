@@ -14,6 +14,7 @@ load_dotenv()
 db = SQLAlchemy()
 login_manager = LoginManager()
 mail = Mail()
+migrate = Migrate()
 
 
 def create_app():
@@ -63,9 +64,9 @@ def create_app():
     app.config['ANALYTICS_MEASUREMENT_ID'] = os.environ.get('ANALYTICS_MEASUREMENT_ID', '').strip()
 
     db.init_app(app)
-    migrate = Migrate(app, db)
     login_manager.init_app(app)
     mail.init_app(app)
+    migrate.init_app(app, db)
 
     if is_production or force_https:
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
